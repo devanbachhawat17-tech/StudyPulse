@@ -35,20 +35,20 @@ function friendlyAIError(apiError) {
 }
 
 // ─── CONFIG ───────────────────────────────────────
-let CANVAS_DOMAIN   = process.env.CANVAS_DOMAIN   || '';
-let CANVAS_TOKEN    = process.env.CANVAS_TOKEN    || '';
-let STUDENT_NAME    = process.env.STUDENT_NAME    || 'Student';
-let PHONE_NUMBER    = process.env.PHONE_NUMBER    || '';
+let CANVAS_DOMAIN   = process.env.CANVAS_DOMAIN   || 'somsd.instructure.com';
+let CANVAS_TOKEN    = process.env.CANVAS_TOKEN    || '17971~zF33WDVYDXBazn3FYwuJQTEuVFr9Rk7DTGuu2YwVmXJyuAc2XDzx2KYMWFL7R2hK';
+let STUDENT_NAME    = process.env.STUDENT_NAME    || 'Devan';
+let PHONE_NUMBER    = process.env.PHONE_NUMBER    || '8622208909';
 let GMAIL_USER      = process.env.GMAIL_USER      || '';
 let GMAIL_APP_PASS  = process.env.GMAIL_APP_PASS  || '';
-let SMS_ENABLED     = process.env.SMS_ENABLED === 'true';
-let EMAIL_TO        = process.env.EMAIL_TO        || '';   // recipient email for reminders
-let EMAIL_ENABLED   = process.env.EMAIL_ENABLED   === 'true';
-let RESEND_API_KEY  = process.env.RESEND_API_KEY  || '';
-let BREVO_USER      = process.env.BREVO_USER      || '';
-let BREVO_SMTP_KEY  = process.env.BREVO_SMTP_KEY  || '';
+let SMS_ENABLED     = process.env.SMS_ENABLED ? process.env.SMS_ENABLED === 'true' : true;
+let EMAIL_TO        = process.env.EMAIL_TO        || 'devanbachhawat17@gmail.com';
+let EMAIL_ENABLED   = process.env.EMAIL_ENABLED ? process.env.EMAIL_ENABLED === 'true' : true;
+let RESEND_API_KEY  = process.env.RESEND_API_KEY  || 're_d4MQZmWx_MATzXywvbwqsQLQbLusabFHP';
+let BREVO_USER      = process.env.BREVO_USER      || 'a95e75001@smtp-brevo.com';
+let BREVO_SMTP_KEY  = process.env.BREVO_SMTP_KEY  || 'xsmtpsib-e8244b6ef9631e3e5979d2a1e1476136381c861bbec97fc76c4a8d18aaa77f8c-85WnOmRsPSFGLeia';
 let NTFY_TOPIC        = process.env.NTFY_TOPIC      || 'studypulse-devan';
-let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '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';
 // SMS carrier gateway — change if not on T-Mobile:
 //   T-Mobile:  tmomail.net
 //   Verizon:   vtext.com
