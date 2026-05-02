@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StudyPulse</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#07090f;--surface:#0e1220;--s2:#141826;--border:#1a2236;
+  --blue:#4070ff;--purple:#7c3aed;--green:#10b981;--warn:#f59e0b;--red:#ef4444;
+  --text:#e2e8f4;--muted:#4a5a7a;--nav:60px;
+}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(64,112,255,0.07),transparent);pointer-events:none;z-index:0;}
+
+/* ═══ SURVEY OVERLAY ════════════════════════════ */
+#surveyOverlay{
+  position:fixed;inset:0;background:rgba(7,9,15,0.97);
+  z-index:1000;display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.survey-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:40px;width:100%;max-width:560px;
+  max-height:90vh;overflow-y:auto;
+}
+.survey-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.survey-logo-mark{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.survey-logo-text{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:1px;}
+.survey-logo-sub{font-size:0.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.survey-step{display:none;}
+.survey-step.active{display:block;}
+.survey-step h2{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px;margin-bottom:6px;line-height:1.1;}
+.survey-step p{font-size:0.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.sq{margin-bottom:22px;}
+.sq-label{font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:10px;letter-spacing:0.3px;}
+.sq-options{display:flex;flex-wrap:wrap;gap:8px;}
+.sq-opt{
+  padding:8px 16px;border-radius:8px;
+  border:1px solid var(--border);background:var(--s2);
+  font-size:0.82rem;color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.sq-opt:hover{border-color:var(--blue);color:var(--text);}
+.sq-opt.selected{border-color:var(--blue);background:rgba(64,112,255,0.12);color:var(--blue);font-weight:600;}
+.sq-opt.multi.selected{border-color:var(--green);background:rgba(16,185,129,0.1);color:var(--green);}
+.survey-input{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.87rem;
+  padding:10px 13px;outline:none;width:100%;transition:border-color 0.2s;
+}
+.survey-input:focus{border-color:var(--blue);}
+.survey-input::placeholder{color:var(--muted);}
+.survey-progress{
+  display:flex;gap:5px;margin-bottom:28px;
+}
+.survey-dot{
+  flex:1;height:3px;border-radius:2px;background:var(--border);transition:background 0.3s;
+}
+.survey-dot.done{background:var(--blue);}
+.survey-dot.active{background:var(--blue);opacity:0.5;}
+.survey-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;}
+
+/* ═══ MAIN APP ══════════════════════════════════ */
+#app{display:flex;flex-direction:column;height:100%;position:relative;z-index:1;}
+
+/* NAV */
+nav{
+  height:var(--nav);flex-shrink:0;
+  background:rgba(7,9,15,0.9);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+}
+.nav-brand{display:flex;align-items:center;gap:9px;}
+.nav-mark{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.nav-name{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;}
+.nav-tabs{display:flex;gap:2px;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:3px;}
+.ntab{
+  font-size:0.8rem;font-weight:600;
+  padding:7px 16px;border-radius:7px;
+  border:none;cursor:pointer;background:transparent;color:var(--muted);
+  transition:all 0.15s;white-space:nowrap;
+}
+.ntab:hover{color:var(--text);}
+.ntab.active{background:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(64,112,255,0.3);}
+.nav-right{display:flex;gap:7px;align-items:center;}
+.nbadge{
+  font-size:0.67rem;font-weight:600;padding:3px 9px;border-radius:20px;
+  border:1px solid var(--border);color:var(--muted);
+}
+.nbadge.on{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);}
+
+/* PAGES */
+.pages{flex:1;overflow:hidden;}
+.page{display:none;height:100%;overflow-y:auto;padding:28px 24px 60px;animation:fadeUp 0.2s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* SHARED COMPONENTS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:16px;position:relative;overflow:hidden;}
+.card-title{font-size:0.69rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;}
+.row{display:grid;gap:12px;margin-bottom:12px;}
+.c1{grid-template-columns:1fr;}
+.c2{grid-template-columns:1fr 1fr;}
+.c3{grid-template-columns:1fr 1fr 1fr;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+label{font-size:0.73rem;font-weight:500;color:var(--muted);}
+input,select,textarea{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.86rem;
+  padding:9px 12px;outline:none;transition:border-color 0.2s;width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+textarea{resize:vertical;min-height:72px;}
+select option{background:var(--s2);}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.82rem;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;transition:all 0.18s;}
+.btn-blue{background:linear-gradient(135deg,var(--blue),#2d5fff);color:#fff;box-shadow:0 3px 14px rgba(64,112,255,0.28);}
+.btn-blue:hover{transform:translateY(-1px);box-shadow:0 5px 20px rgba(64,112,255,0.38);}
+.btn-green{background:linear-gradient(135deg,var(--green),#059669);color:#fff;}
+.btn-green:hover{transform:translateY(-1px);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+.btn-red{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);}
+.btn-sm{padding:5px 11px;font-size:0.74rem;}
+.btn:disabled{opacity:0.35;cursor:not-allowed;transform:none!important;}
+.btn-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:6px;}
+.hint{font-size:0.72rem;color:var(--muted);}
+.sbar{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:9px;font-size:0.81rem;font-weight:500;margin-bottom:18px;}
+.sbar.idle{background:var(--surface);border:1px solid var(--border);color:var(--muted);}
+.sbar.ok{background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.18);color:var(--green);}
+.sbar.err{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18);color:var(--red);}
+.sbar.load{background:rgba(64,112,255,0.07);border:1px solid rgba(64,112,255,0.18);color:var(--blue);}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);}
+.empty-icon{font-size:1.8rem;margin-bottom:7px;opacity:0.3;}
+
+/* ═══ HOME PAGE ═════════════════════════════════ */
+.home-hero{
+  background:linear-gradient(135deg,rgba(64,112,255,0.08),rgba(124,58,237,0.05));
+  border:1px solid rgba(64,112,255,0.12);
+  border-radius:16px;padding:36px;margin-bottom:20px;
+  display:flex;align-items:center;gap:24px;
+}
+.home-hero-icon{
+  width:64px;height:64px;flex-shrink:0;border-radius:16px;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  box-shadow:0 8px 28px rgba(64,112,255,0.3);
+}
+.home-hero h1{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:1.5px;margin-bottom:6px;}
+.home-hero p{font-size:0.88rem;color:var(--muted);line-height:1.7;max-width:480px;}
+.home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.home-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:18px;position:relative;overflow:hidden;
+}
+.home-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.hc1::after{background:linear-gradient(90deg,var(--blue),transparent);}
+.hc2::after{background:linear-gradient(90deg,var(--green),transparent);}
+.hc3::after{background:linear-gradient(90deg,var(--purple),transparent);}
+.hc4::after{background:linear-gradient(90deg,var(--warn),transparent);}
+.hc5::after{background:linear-gradient(90deg,var(--red),transparent);}
+.hc6::after{background:linear-gradient(90deg,var(--blue),transparent);}
+.hc-icon{font-size:20px;margin-bottom:8px;}
+.hc-title{font-weight:600;font-size:0.88rem;margin-bottom:4px;}
+.hc-desc{font-size:0.76rem;color:var(--muted);line-height:1.5;}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;}
+.setup-card h3{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;margin-bottom:16px;color:var(--muted);}
+.setup-step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border);}
+.setup-step:last-child{border-bottom:none;}
+.setup-num{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:rgba(64,112,255,0.1);border:1px solid rgba(64,112,255,0.2);
+  color:var(--blue);font-weight:700;font-size:0.82rem;
+  display:flex;align-items:center;justify-content:center;
+}
+.setup-step h4{font-size:0.88rem;font-weight:600;margin-bottom:2px;}
+.setup-step p{font-size:0.78rem;color:var(--muted);line-height:1.5;}
+.step-link{color:var(--blue);cursor:pointer;text-decoration:underline;font-weight:600;}
+
+/* ═══ ASSIGNMENTS PAGE ══════════════════════════ */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.st-b::after{background:linear-gradient(90deg,var(--blue),transparent);}
+.st-r::after{background:linear-gradient(90deg,var(--red),transparent);}
+.st-w::after{background:linear-gradient(90deg,var(--warn),transparent);}
+.st-g::after{background:linear-gradient(90deg,var(--green),transparent);}
+.st-p::after{background:linear-gradient(90deg,var(--purple),transparent);}
+.stat-n{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;line-height:1;margin-bottom:2px;}
+.stat-l{font-size:0.67rem;color:var(--muted);letter-spacing:0.4px;}
+.fbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.srcs{display:flex;gap:5px;}
+.src{font-size:0.71rem;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--muted);transition:all 0.14s;}
+.src.sa{background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.25);color:var(--purple);}
+.src.sb{background:rgba(64,112,255,0.1);border-color:rgba(64,112,255,0.25);color:var(--blue);}
+.src.sc{background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.22);color:var(--green);}
+.src.sd{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.22);color:var(--red);}
+.typs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.typ{font-size:0.73rem;font-weight:600;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.13s;}
+.typ.active{background:var(--blue);color:#fff;}
+.alist{display:flex;flex-direction:column;gap:7px;}
+.aitem{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;display:grid;grid-template-columns:4px 1fr auto;gap:11px;
+  align-items:start;transition:border-color 0.2s;animation:fadeUp 0.22s ease both;
+}
+.aitem:hover{border-color:rgba(64,112,255,0.22);}
+.aitem.miss{border-color:rgba(239,68,68,0.18);}
+.abar{border-radius:2px;align-self:stretch;}
+.abar.urgent{background:var(--red);} .abar.soon{background:var(--warn);} .abar.upcoming{background:var(--blue);} .abar.done{background:var(--green);} .abar.missing{background:var(--red);}
+.abody{min-width:0;}
+.atitle{font-weight:500;font-size:0.9rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ameta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.tag{font-size:0.64rem;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;padding:2px 6px;border-radius:4px;}
+.t-q{background:rgba(124,58,237,0.13);color:var(--purple);}
+.t-a,.t-d{background:rgba(64,112,255,0.13);color:var(--blue);}
+.t-h{background:rgba(245,158,11,0.11);color:var(--warn);}
+.t-p{background:rgba(16,185,129,0.11);color:var(--green);}
+.t-t,.t-e{background:rgba(239,68,68,0.12);color:var(--red);}
+.t-m{background:rgba(239,68,68,0.17);color:var(--red);}
+.t-paper{background:rgba(16,185,129,0.11);color:var(--green);}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.dot-c{background:var(--blue);} .dot-m{background:var(--green);}
+.mt{font-size:0.72rem;color:var(--muted);}
+.anote{font-size:0.7rem;color:var(--muted);font-style:italic;margin-top:2px;}
+.aright{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
+.ubadge{font-size:0.64rem;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap;border:1px solid;}
+.ubadge.urgent{background:rgba(239,68,68,0.11);color:var(--red);border-color:rgba(239,68,68,0.2);}
+.ubadge.soon{background:rgba(245,158,11,0.09);color:var(--warn);border-color:rgba(245,158,11,0.2);}
+.ubadge.upcoming{background:rgba(64,112,255,0.08);color:var(--blue);border-color:rgba(64,112,255,0.18);}
+.ubadge.done{background:rgba(16,185,129,0.08);color:var(--green);border-color:rgba(16,185,129,0.18);}
+.ubadge.missing{background:rgba(239,68,68,0.11);color:var(--red);border-color:rgba(239,68,68,0.2);}
+.aact{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+
+/* ═══ EMAIL PAGE ════════════════════════════════ */
+.email-hero{
+  background:linear-gradient(135deg,rgba(64,112,255,0.07),rgba(124,58,237,0.04));
+  border:1px solid rgba(64,112,255,0.12);border-radius:14px;
+  padding:22px 24px;margin-bottom:16px;display:flex;gap:16px;align-items:center;
+}
+.email-hero-icon{
+  width:48px;height:48px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.email-hero h2{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;margin-bottom:3px;}
+.email-hero p{font-size:0.81rem;color:var(--muted);line-height:1.6;}
+.help-box{
+  background:var(--s2);border:1px solid var(--border);border-radius:9px;
+  padding:14px 16px;font-size:0.79rem;line-height:1.8;color:var(--muted);
+  margin-top:10px;display:none;
+}
+.help-box b{color:var(--text);}
+.trig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.trig{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:14px;text-align:center;cursor:pointer;transition:all 0.17s;
+}
+.trig:hover{border-color:var(--blue);background:rgba(64,112,255,0.04);}
+.trig:active{transform:scale(0.98);}
+.trig-icon{font-size:18px;margin-bottom:5px;}
+.trig-title{font-weight:600;font-size:0.83rem;margin-bottom:2px;}
+.trig-desc{font-size:0.71rem;color:var(--muted);}
+.sched-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
+.sched-item:last-child{border-bottom:none;}
+.sched-time{font-weight:600;font-size:0.84rem;}
+.sched-desc{font-size:0.76rem;color:var(--muted);margin-top:1px;}
+.badge-d{font-size:0.67rem;font-weight:600;padding:2px 8px;border-radius:5px;background:rgba(64,112,255,0.1);color:var(--blue);}
+.badge-w{font-size:0.67rem;font-weight:600;padding:2px 8px;border-radius:5px;background:rgba(124,58,237,0.1);color:var(--purple);}
+
+/* ═══ VOICE INPUT ═══════════════════════════════ */
+.voice-card{background:linear-gradient(135deg,rgba(124,58,237,0.07),rgba(64,112,255,0.05));border:1px solid rgba(124,58,237,0.18);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+.mic-btn{width:72px;height:72px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:28px;transition:all 0.2s;flex-shrink:0;}
+.mic-btn.idle{background:linear-gradient(135deg,var(--purple),var(--blue));box-shadow:0 4px 20px rgba(124,58,237,0.35);}
+.mic-btn.idle:hover{transform:scale(1.07);box-shadow:0 6px 28px rgba(124,58,237,0.5);}
+.mic-btn.listening{background:linear-gradient(135deg,var(--red),#dc2626);box-shadow:0 0 0 0 rgba(239,68,68,0.5);animation:pulse-mic 1.2s infinite;}
+.mic-btn.processing{background:linear-gradient(135deg,var(--warn),#d97706);cursor:not-allowed;}
+@keyframes pulse-mic{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.5);}70%{box-shadow:0 0 0 16px rgba(239,68,68,0);}100%{box-shadow:0 0 0 0 rgba(239,68,68,0);}}
+.voice-transcript{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:0.85rem;color:var(--text);line-height:1.6;min-height:44px;margin:14px 0 0;font-style:italic;}
+.voice-parsed{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:9px;padding:14px;margin-top:10px;display:none;}
+.vp-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.04);}
+.vp-row:last-child{border-bottom:none;}
+.vp-label{color:var(--muted);font-weight:600;font-size:0.72rem;letter-spacing:0.3px;}
+.vp-val{color:var(--text);font-weight:500;}
+
+/* ═══ STUDY GUIDE ═══════════════════════════════ */
+.sg-hero{background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(64,112,255,0.05));border:1px solid rgba(16,185,129,0.15);border-radius:16px;padding:24px 28px;margin-bottom:20px;}
+.sg-course-picker{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0;}
+.sg-course-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.82rem;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.sg-course-btn:hover{border-color:var(--green);color:var(--text);}
+.sg-course-btn.selected{border-color:var(--green);background:rgba(16,185,129,0.1);color:var(--green);font-weight:600;}
+.sg-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+@media(max-width:540px){.sg-options{grid-template-columns:1fr;}}
+.sg-output{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-top:20px;line-height:1.7;font-size:0.875rem;}
+.sg-output h1,.sg-output h2{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;margin:22px 0 10px;color:var(--blue);}
+.sg-output h2{font-size:1.25rem;}
+.sg-output h3{font-size:0.95rem;font-weight:700;color:var(--text);margin:16px 0 7px;border-left:3px solid var(--green);padding-left:10px;}
+.sg-output h4{font-size:0.85rem;font-weight:700;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:0.5px;}
+.sg-output p{margin-bottom:9px;color:var(--text);}
+.sg-output ul,.sg-output ol{padding-left:20px;margin-bottom:10px;}
+.sg-output li{margin-bottom:5px;color:var(--text);}
+.sg-output strong{color:#fff;font-weight:700;}
+.sg-output em{color:var(--warn);}
+.sg-output code{background:rgba(64,112,255,0.1);border:1px solid rgba(64,112,255,0.2);border-radius:4px;padding:1px 6px;font-size:0.82rem;}
+.sg-output blockquote{border-left:3px solid var(--purple);padding:8px 14px;background:rgba(124,58,237,0.06);border-radius:0 8px 8px 0;margin:10px 0;font-style:italic;color:var(--muted);}
+.sg-output hr{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.sg-meta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.sg-meta-chip{font-size:0.72rem;font-weight:700;padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.1);color:var(--green);letter-spacing:0.3px;}
+.sg-actions{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;}
+.sg-step-label{font-size:0.75rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+/* Test/quiz cards */
+.sg-test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.sg-test-card{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left;font-family:'DM Sans',sans-serif;position:relative;overflow:hidden;}
+.sg-test-card:hover{border-color:var(--warn);background:rgba(245,158,11,0.05);transform:translateY(-1px);}
+.sg-test-card.selected{border-color:var(--green);background:rgba(16,185,129,0.08);}
+.sg-test-card.urgent{border-left:3px solid var(--red);}
+.sg-test-card.soon{border-left:3px solid var(--warn);}
+.sg-test-card.upcoming{border-left:3px solid var(--blue);}
+.sg-test-title{font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;line-height:1.3;}
+.sg-test-course{font-size:0.72rem;color:var(--muted);margin-bottom:6px;}
+.sg-test-due{font-size:0.72rem;font-weight:700;}
+.sg-test-due.urgent{color:var(--red);}
+.sg-test-due.soon{color:var(--warn);}
+.sg-test-due.upcoming{color:var(--blue);}
+.sg-test-type{font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;display:inline-block;margin-bottom:6px;}
+.sg-test-type.quiz{background:rgba(124,58,237,0.15);color:var(--purple);}
+.sg-test-type.test,.sg-test-type.exam{background:rgba(239,68,68,0.12);color:var(--red);}
+.sg-test-type.assignment{background:rgba(64,112,255,0.12);color:var(--blue);}
+.sg-selected-bar{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.sg-quiz-btn{padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.78rem;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;text-align:left;}
+.sg-quiz-btn:hover{border-color:var(--warn);color:var(--text);}
+.sg-quiz-btn.selected{border-color:var(--warn);background:rgba(245,158,11,0.1);color:var(--warn);font-weight:600;}
+.sg-quiz-soon{font-size:0.68rem;color:var(--red);font-weight:700;margin-left:6px;}
+.sg-demo-card{border-style:dashed;border-color:rgba(124,58,237,0.4);background:rgba(124,58,237,0.04);}
+.sg-demo-card:hover{border-color:var(--purple) !important;}
+.sg-test-type.demo{background:rgba(124,58,237,0.15);color:var(--purple);}
+/* Tabs */
+.sg-tabs{display:flex;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:5px;}
+.sg-tab{flex:1;padding:8px 12px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.sg-tab:hover{color:var(--text);}
+.sg-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.3);}
+/* Topic search suggestion chips */
+.tg-suggest{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.75rem;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.tg-suggest:hover{border-color:var(--blue);color:var(--text);}
+
+/* ── Study guide two-column layout ── */
+.sg-main-layout{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start;}
+@media(max-width:860px){.sg-main-layout{grid-template-columns:1fr;}}
+.sg-panel-left{min-width:0;}
+.sg-panel-right{position:sticky;top:70px;}
+
+/* ── AI Tutor panel ── */
+.tutor-panel{background:var(--surface);border:1px solid rgba(124,58,237,0.25);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;max-height:82vh;}
+.tutor-header{display:flex;align-items:center;gap:12px;padding:16px 18px;background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(64,112,255,0.08));border-bottom:1px solid var(--border);}
+.tutor-chips{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(124,58,237,0.03);}
+.tutor-chip{background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.75rem;padding:7px 11px;cursor:pointer;text-align:left;transition:all 0.15s;font-family:'DM Sans',sans-serif;line-height:1.3;}
+.tutor-chip:hover{border-color:var(--purple);color:var(--text);background:rgba(124,58,237,0.08);}
+.tutor-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px;}
+.tutor-msg{display:flex;flex-direction:column;}
+.tutor-bubble{padding:10px 13px;border-radius:11px;font-size:0.8rem;line-height:1.6;white-space:pre-wrap;}
+.tutor-ai .tutor-bubble{background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.18);color:var(--text);border-bottom-left-radius:3px;}
+.tutor-user .tutor-bubble{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.tutor-user{align-items:flex-end;}
+.tutor-thinking{display:flex;gap:4px;padding:12px 14px;align-items:center;}
+.tutor-dot{width:7px;height:7px;border-radius:50%;background:var(--purple);animation:tutor-bounce 1.2s infinite;}
+.tutor-dot:nth-child(2){animation-delay:0.2s;}
+.tutor-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes tutor-bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-7px);}}
+.tutor-input-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);background:var(--surface);}
+.tutor-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;padding:9px 12px;outline:none;transition:border-color 0.2s;}
+.tutor-input:focus{border-color:var(--purple);}
+.tutor-send{background:linear-gradient(135deg,var(--purple),var(--blue));border:none;border-radius:9px;color:#fff;font-size:1rem;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity 0.15s;}
+.tutor-send:hover{opacity:0.85;}
+
+/* ═══ EMAIL DRAFTER ══════════════════════════════ */
+.ed-layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+@media(max-width:820px){.ed-layout{grid-template-columns:1fr;}}
+.ed-left{}
+.ed-right{position:sticky;top:70px;}
+.ed-reason-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:8px;}
+.ed-reason{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:0.8rem;font-weight:500;cursor:pointer;text-align:left;transition:all 0.15s;font-family:'DM Sans',sans-serif;line-height:1.3;}
+.ed-reason:hover{border-color:var(--blue);color:var(--text);}
+.ed-reason.selected{border-color:var(--blue);background:rgba(64,112,255,0.1);color:var(--blue);font-weight:700;}
+.ed-preview{background:var(--surface);border:1px solid var(--border);border-radius:16px;min-height:400px;display:flex;flex-direction:column;}
+.ed-preview-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;color:var(--muted);}
+.ed-draft-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.ed-field-row{display:flex;align-items:baseline;gap:12px;}
+.ed-field-label{font-size:0.65rem;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;width:52px;flex-shrink:0;}
+.ed-field-val{font-size:0.82rem;color:var(--muted);}
+.ed-body{padding:20px;font-size:0.85rem;line-height:1.8;color:var(--text);white-space:pre-wrap;flex:1;}
+.ed-actions{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ═══ MODAL ═════════════════════════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(5px);z-index:200;display:flex;align-items:center;justify-content:center;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:22px 26px;width:480px;max-width:95vw;max-height:88vh;overflow-y:auto;animation:fadeUp 0.18s ease;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;margin-bottom:2px;}
+.modal-sub{font-size:0.78rem;color:var(--muted);margin-bottom:16px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:13px;}
+.ai-box{background:linear-gradient(135deg,rgba(64,112,255,0.05),rgba(124,58,237,0.05));border:1px solid rgba(64,112,255,0.13);border-radius:8px;padding:13px;font-size:0.83rem;line-height:1.65;white-space:pre-wrap;margin-top:10px;}
+.ai-load{display:flex;align-items:center;gap:8px;color:var(--blue);font-size:0.81rem;padding:12px;}
+
+@media(max-width:640px){
+  .nav-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0;}
+  .nav-tabs::-webkit-scrollbar{display:none;}
+  .ntab{font-size:0.72rem;padding:6px 11px;white-space:nowrap;}
+  .home-cards,.c2,.c3,.trig-grid{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  .home-hero{flex-direction:column;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SURVEY OVERLAY (shown first time only)
+════════════════════════════════════════════════ -->
+<div id="surveyOverlay">
+  <div class="survey-box">
+    <div class="survey-logo">
+      <div class="survey-logo-mark">📡</div>
+      <div>
+        <div class="survey-logo-text">StudyPulse</div>
+        <div class="survey-logo-sub">Smart School Reminders</div>
+      </div>
+    </div>
+
+    <div class="survey-progress" id="surveyProgress">
+      <div class="survey-dot active"></div>
+      <div class="survey-dot"></div>
+      <div class="survey-dot"></div>
+      <div class="survey-dot"></div>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <div class="survey-step active" id="step1">
+      <h2>Welcome! Let's personalize StudyPulse for you.</h2>
+      <p>Answer 3 quick questions so we can set up your reminders perfectly. Takes under a minute.</p>
+      <div class="sq">
+        <div class="sq-label">What's your name?</div>
+        <input class="survey-input" type="text" id="surveyName" placeholder="e.g. Darshan"/>
+      </div>
+      <div class="sq">
+        <div class="sq-label">What grade are you in?</div>
+        <div class="sq-options">
+          <div class="sq-opt" onclick="pick(this,'grade')">9th Grade</div>
+          <div class="sq-opt" onclick="pick(this,'grade')">10th Grade</div>
+          <div class="sq-opt" onclick="pick(this,'grade')">11th Grade</div>
+          <div class="sq-opt" onclick="pick(this,'grade')">12th Grade</div>
+          <div class="sq-opt" onclick="pick(this,'grade')">College</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Reminder Preferences -->
+    <div class="survey-step" id="step2">
+      <h2>When do you want reminders?</h2>
+      <p>We'll schedule your daily emails around these times. You can always change this later.</p>
+      <div class="sq">
+        <div class="sq-label">Pick your reminder times (select all that apply)</div>
+        <div class="sq-options">
+          <div class="sq-opt multi" onclick="toggle(this,'times')">☀️ 7:30 AM — Morning</div>
+          <div class="sq-opt multi" onclick="toggle(this,'times')">🕛 12:00 PM — Midday</div>
+          <div class="sq-opt multi" onclick="toggle(this,'times')">🌙 8:00 PM — Evening</div>
+        </div>
+      </div>
+      <div class="sq">
+        <div class="sq-label">Weekly summary email?</div>
+        <div class="sq-options">
+          <div class="sq-opt" onclick="pick(this,'weekly')">📅 Yes — Sunday evening</div>
+          <div class="sq-opt" onclick="pick(this,'weekly')">🚫 No thanks</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Study Style -->
+    <div class="survey-step" id="step3">
+      <h2>How do you like to study?</h2>
+      <p>This helps us write AI reminders that actually match how you work.</p>
+      <div class="sq">
+        <div class="sq-label">Your study style</div>
+        <div class="sq-options">
+          <div class="sq-opt" onclick="pick(this,'style')">🏃 I work best under pressure</div>
+          <div class="sq-opt" onclick="pick(this,'style')">📅 I plan ahead</div>
+          <div class="sq-opt" onclick="pick(this,'style')">⚠️ I tend to procrastinate</div>
+          <div class="sq-opt" onclick="pick(this,'style')">🎯 I'm pretty organized</div>
+        </div>
+      </div>
+      <div class="sq">
+        <div class="sq-label">Reminder tone preference</div>
+        <div class="sq-options">
+          <div class="sq-opt" onclick="pick(this,'tone')">😊 Friendly & encouraging</div>
+          <div class="sq-opt" onclick="pick(this,'tone')">💼 Direct & professional</div>
+          <div class="sq-opt" onclick="pick(this,'tone')">🔥 Urgent & motivating</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Done -->
+    <div class="survey-step" id="step4">
+      <h2>You're all set!</h2>
+      <p>StudyPulse is personalized for you. Next steps:</p>
+      <div style="background:var(--s2);border-radius:10px;padding:16px;margin-bottom:8px;">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;gap:10px;align-items:center;font-size:0.84rem;">
+            <span style="font-size:1.1rem;">📧</span>
+            <div><strong>Set up Email Reminders</strong><br/><span style="color:var(--muted);font-size:0.77rem;">Add your email and Gmail App Password to start receiving digests</span></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:0.84rem;">
+            <span style="font-size:1.1rem;">🔵</span>
+            <div><strong>Connect Canvas</strong><br/><span style="color:var(--muted);font-size:0.77rem;">Sync your assignments automatically</span></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:0.84rem;">
+            <span style="font-size:1.1rem;">📝</span>
+            <div><strong>Add paper assignments</strong><br/><span style="color:var(--muted);font-size:0.77rem;">Track anything not on Canvas</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="survey-nav">
+      <button class="btn btn-ghost btn-sm" id="surveyBack" onclick="surveyBack()" style="visibility:hidden">← Back</button>
+      <button class="btn btn-blue" id="surveyNext" onclick="surveyNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-mark">📡</div>
+      <div class="nav-name">StudyPulse</div>
+    </div>
+    <div class="nav-tabs">
+      <button class="ntab active" onclick="go('home',this)">🏠 Home</button>
+      <button class="ntab" onclick="go('assignments',this)">📚 Assignments</button>
+      <button class="ntab" onclick="go('add',this)">➕ Add Assignment</button>
+      <button class="ntab" onclick="go('email',this)">📧 Email Reminders</button>
+      <button class="ntab" onclick="go('canvas',this)">🔵 Canvas Sync</button>
+      <button class="ntab" onclick="go('studyguide',this)">🧠 Study Guide</button>
+      <button class="ntab" onclick="go('emaildraft',this)">✉️ Email Teacher</button>
+      <button class="ntab" onclick="go('guide',this)">📖 Setup Guide</button>
+    </div>
+    <div class="nav-right">
+      <span class="nbadge" id="bdgCanvas">Canvas: Off</span>
+      <span class="nbadge" id="bdgEmail">Email: Off</span>
+      <button class="btn btn-ghost btn-sm" onclick="resetSurvey()" title="Redo setup survey" style="padding:4px 9px;font-size:0.68rem;">⚙️ Setup</button>
+    </div>
+  </nav>
+
+  <!-- PAGES -->
+  <div class="pages">
+
+    <!-- ── HOME ─────────────────────────────────── -->
+    <div class="page active" id="page-home">
+      <div class="home-hero">
+        <div class="home-hero-icon">📡</div>
+        <div>
+          <div style="font-size:0.72rem;font-weight:700;color:var(--blue);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;" id="todayDate"></div>
+          <h1>StudyPulse</h1>
+          <p>Your personal school command center. Never miss an assignment, quiz, or deadline again. Syncs with Canvas, tracks paper assignments, and sends personalized AI-powered email reminders — automatically, every day.</p>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn btn-blue" onclick="go('email',ntab(3))">📧 Set Up Email Reminders</button>
+            <button class="btn btn-ghost" onclick="go('canvas',ntab(4))">🔵 Connect Canvas →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-cards">
+        <div class="home-card hc1"><div class="hc-icon">🔵</div><div class="hc-title">Canvas Sync</div><div class="hc-desc">Pulls all assignments, quizzes, and due dates from Canvas every morning at 6 AM automatically.</div></div>
+        <div class="home-card hc2"><div class="hc-icon">📝</div><div class="hc-title">Paper Assignments</div><div class="hc-desc">Add homework, projects, and tests that aren't on Canvas. Track everything in one place.</div></div>
+        <div class="home-card hc3"><div class="hc-icon">✨</div><div class="hc-title">AI Reminders</div><div class="hc-desc">Claude AI writes personalized reminder messages for each assignment based on your study style.</div></div>
+        <div class="home-card hc4"><div class="hc-icon">☀️</div><div class="hc-title">Daily Emails</div><div class="hc-desc">Beautiful HTML digest emails at 7:30 AM and 8:00 PM — urgent items, due soon, and what's coming up.</div></div>
+        <div class="home-card hc5"><div class="hc-icon">⚠️</div><div class="hc-title">Missing Work</div><div class="hc-desc">Flag missing assignments so they appear highlighted in every digest until you resolve them.</div></div>
+        <div class="home-card hc6"><div class="hc-icon">📅</div><div class="hc-title">Weekly Summary</div><div class="hc-desc">Every Sunday at 6 PM — a full breakdown of your entire week with an AI coaching note.</div></div>
+      </div>
+
+      <div class="setup-card">
+        <h3>GET STARTED IN 3 STEPS</h3>
+        <div class="setup-step">
+          <div class="setup-num">1</div>
+          <div>
+            <h4>Set up Email Reminders</h4>
+            <p>Go to <span class="step-link" onclick="go('email',ntab(3))">📧 Email Reminders</span> — enter your email, a Gmail to send from, and a Gmail App Password. Then click <strong>Send Test Email</strong> to confirm it works.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-num">2</div>
+          <div>
+            <h4>Connect Canvas</h4>
+            <p>Go to <span class="step-link" onclick="go('canvas',ntab(4))">🔵 Canvas Sync</span> — enter your school's Canvas domain and API token. StudyPulse syncs automatically every day at 6 AM after that.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-num">3</div>
+          <div>
+            <h4>Add Paper Assignments</h4>
+            <p>Go to <span class="step-link" onclick="go('add',ntab(2))">➕ Add Assignment</span> for anything not on Canvas — paper homework, projects, in-class tests.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ASSIGNMENTS ────────────────────────────── -->
+    <div class="page" id="page-assignments">
+      <div class="sbar idle" id="sb-asgn"><span>📚 Your assignments appear here after syncing Canvas or adding manually.</span></div>
+
+      <div class="stats-row">
+        <div class="stat st-b"><div class="stat-n" id="s1">0</div><div class="stat-l">Total Items</div></div>
+        <div class="stat st-r"><div class="stat-n" id="s2">0</div><div class="stat-l">Due Today</div></div>
+        <div class="stat st-w"><div class="stat-n" id="s3">0</div><div class="stat-l">This Week</div></div>
+        <div class="stat st-g"><div class="stat-n" id="s4">0</div><div class="stat-l">Manual</div></div>
+        <div class="stat st-p"><div class="stat-n" id="s5">0</div><div class="stat-l">⚠️ Missing</div></div>
+      </div>
+
+      <div class="fbar">
+        <div class="srcs">
+          <button class="src sa" onclick="setSrc('all',this)">All Sources</button>
+          <button class="src" onclick="setSrc('canvas',this)">🔵 Canvas</button>
+          <button class="src" onclick="setSrc('manual',this)">🟢 Manual</button>
+          <button class="src" onclick="setSrc('missing',this)">🔴 Missing</button>
+        </div>
+        <div class="typs">
+          <button class="typ active" onclick="setTyp('all',this)">All</button>
+          <button class="typ" onclick="setTyp('urgent',this)">Urgent</button>
+          <button class="typ" onclick="setTyp('assign',this)">Assignments</button>
+          <button class="typ" onclick="setTyp('quiz',this)">Quizzes</button>
+        </div>
+      </div>
+
+      <div class="alist" id="alist">
+        <div class="empty"><div class="empty-icon">📚</div><p>No items yet — sync Canvas or add a manual assignment.</p></div>
+      </div>
+    </div>
+
+    <!-- ── ADD ASSIGNMENT ────────────────────────── -->
+    <div class="page" id="page-add">
+      <div class="sbar idle" id="sb-add"><span>📝 Add any assignment not on Canvas — speak it or type it below.</span></div>
+
+      <!-- Voice Input -->
+      <div class="voice-card">
+        <div style="display:flex;align-items:center;gap:18px;">
+          <button class="mic-btn idle" id="micBtn" onclick="toggleVoice()">🎤</button>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.95rem;margin-bottom:3px;">🎤 Voice Input</div>
+            <div style="font-size:0.78rem;color:var(--muted);line-height:1.6;">Tap the mic and say something like <em style="color:var(--text);">"I have a math test on chapter 5 due Friday for 50 points"</em> — AI will fill in the form automatically.</div>
+          </div>
+        </div>
+        <div class="voice-transcript" id="voiceTranscript" style="display:none;"></div>
+        <div class="voice-parsed" id="voiceParsed" style="display:none;">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">✅ Parsed — review before adding</div>
+          <div id="vpRows"></div>
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-green" onclick="confirmVoice()">✅ Add This Assignment</button>
+            <button class="btn btn-ghost btn-sm" onclick="resetVoice()">🔄 Try Again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📝 New Assignment</div>
+        <div class="row c3">
+          <div class="fg"><label>Title *</label><input type="text" id="mTitle" placeholder="e.g. Chapter 5 Essay"/></div>
+          <div class="fg"><label>Subject / Course *</label><input type="text" id="mCourse" placeholder="e.g. AP English"/></div>
+          <div class="fg"><label>Type</label>
+            <select id="mType">
+              <option value="homework">Homework</option>
+              <option value="project">Project</option>
+              <option value="test">Test / Exam</option>
+              <option value="assignment">Assignment</option>
+              <option value="quiz">Quiz</option>
+            </select>
+          </div>
+        </div>
+        <div class="row c3">
+          <div class="fg"><label>Due Date & Time *</label><input type="datetime-local" id="mDue"/></div>
+          <div class="fg"><label>Points (optional)</label><input type="number" id="mPoints" placeholder="e.g. 100"/></div>
+          <div class="fg" style="justify-content:flex-end;padding-top:18px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.77rem;">
+              <input type="checkbox" id="mMissing" style="width:auto;accent-color:var(--red)"/>
+              <span style="color:var(--red);font-weight:600;">Mark as Missing Work</span>
+            </label>
+          </div>
+        </div>
+        <div class="row c1" style="margin-bottom:14px;">
+          <div class="fg"><label>Notes (optional)</label><input type="text" id="mNotes" placeholder="e.g. Bring printed copy to class, covers chapters 5–7"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="addManual()">➕ Add Assignment</button>
+          <button class="btn btn-ghost" onclick="go('assignments',ntab(1))">View All Assignments →</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Recently Added Manual Assignments</div>
+        <div id="recentList"><div class="empty"><div class="empty-icon">📝</div><p>Nothing yet.</p></div></div>
+      </div>
+    </div>
+
+    <!-- ── EMAIL REMINDERS ───────────────────────── -->
+    <div class="page" id="page-email">
+      <div class="email-hero">
+        <div class="email-hero-icon">📧</div>
+        <div>
+          <h2>Email Reminders</h2>
+          <p>Fill in the form below and click <strong style="color:var(--text)">Save Settings</strong>. Then click <strong style="color:var(--text)">Send Test Email</strong> to make sure it arrives in your inbox.</p>
+        </div>
+      </div>
+
+      <div class="sbar idle" id="sb-email"><span>👇 Enter your Resend API key below to get started.</span></div>
+
+      <div class="card">
+        <div class="card-title">✨ Email Configuration — Powered by Resend</div>
+        <div style="background:rgba(64,112,255,0.06);border:1px solid rgba(64,112,255,0.15);border-radius:9px;padding:12px 16px;font-size:0.8rem;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+          <b style="color:var(--text);">Get your free Resend API key:</b>&nbsp;&nbsp;
+          1. Go to <b style="color:var(--blue)">resend.com</b> → sign up free &nbsp;·&nbsp;
+          2. Click <b>API Keys</b> → <b>Create API Key</b> &nbsp;·&nbsp;
+          3. Copy it and paste below
+        </div>
+        <div class="row c3">
+          <div class="fg">
+            <label>Your Name</label>
+            <input type="text" id="emailName" placeholder="e.g. Devan"/>
+          </div>
+          <div class="fg">
+            <label>📥 Your email — reminders sent HERE</label>
+            <input type="email" id="emailTo" placeholder="the inbox you check every day"/>
+          </div>
+          <div class="fg">
+            <label>Resend API Key</label>
+            <input type="password" id="resendKey" placeholder="re_xxxxxxxxxxxxxxxxxxxx"/>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:4px;">
+          <button class="btn btn-blue" onclick="saveResend()">💾 Save Settings</button>
+          <button class="btn btn-ghost" id="testBtn" onclick="testEmail()" disabled>📧 Send Test Email</button>
+        </div>
+      </div>
+
+      <!-- Send triggers — shown after email configured -->
+      <div id="emailTriggers" style="display:none;">
+        <div class="card">
+          <div class="card-title">📤 Send an Email Right Now</div>
+          <div class="trig-grid">
+            <div class="trig" onclick="sendEmail('daily-morning')">
+              <div class="trig-icon">☀️</div>
+              <div class="trig-title">Morning Briefing</div>
+              <div class="trig-desc">Urgent + due soon items</div>
+            </div>
+            <div class="trig" onclick="sendEmail('daily-evening')">
+              <div class="trig-icon">🌙</div>
+              <div class="trig-title">Evening Check-in</div>
+              <div class="trig-desc">What's due tomorrow</div>
+            </div>
+            <div class="trig" onclick="sendEmail('weekly')">
+              <div class="trig-icon">📅</div>
+              <div class="trig-title">Weekly Summary</div>
+              <div class="trig-desc">Full week + AI coaching note</div>
+            </div>
+          </div>
+          <div id="emailMsg" style="display:none;padding:10px 14px;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.18);border-radius:8px;font-size:0.81rem;color:var(--green);margin-top:4px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🗓️ Automatic Schedule</div>
+          <div class="sched-item">
+            <div><div class="sched-time">7:30 AM — Every Day</div><div class="sched-desc">Urgent items + due today + due this week</div></div>
+            <span class="badge-d">Daily</span>
+          </div>
+          <div class="sched-item">
+            <div><div class="sched-time">8:00 PM — Every Day</div><div class="sched-desc">Evening check-in — what's urgent and due tomorrow</div></div>
+            <span class="badge-d">Daily</span>
+          </div>
+          <div class="sched-item">
+            <div><div class="sched-time">6:00 PM — Every Sunday</div><div class="sched-desc">Full week summary — all assignments, paper work, missing items, AI note</div></div>
+            <span class="badge-w">Weekly</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CANVAS SYNC ────────────────────────────── -->
+    <div class="page" id="page-canvas">
+      <div class="sbar idle" id="sb-canvas"><span>🔵 Enter your Canvas details to sync assignments automatically.</span></div>
+      <div class="card">
+        <div class="card-title">🔵 Canvas Connection</div>
+        <div class="row c2">
+          <div class="fg"><label>Canvas Domain</label><input type="text" id="canvasDomain" placeholder="yourschool.instructure.com"/></div>
+          <div class="fg"><label>API Token</label><input type="password" id="apiToken" placeholder="Paste your Canvas API token"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-blue" id="syncBtn" onclick="syncCanvas()">🔄 Sync Canvas Now</button>
+          <span class="hint">Saved after first use — re-syncs automatically every day at 6 AM.</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">ℹ️ How to Get Your Canvas API Token</div>
+        <div style="display:flex;flex-direction:column;gap:0;">
+          <div class="setup-step"><div class="setup-num">1</div><div><h4>Log into Canvas</h4><p>Go to your school's Canvas website and sign in normally.</p></div></div>
+          <div class="setup-step"><div class="setup-num">2</div><div><h4>Go to Account → Settings</h4><p>Click your profile picture in the top left corner, then click Settings.</p></div></div>
+          <div class="setup-step"><div class="setup-num">3</div><div><h4>New Access Token</h4><p>Scroll to Approved Integrations → click + New Access Token → name it StudyPulse → Generate.</p></div></div>
+          <div class="setup-step"><div class="setup-num">4</div><div><h4>Copy & Paste</h4><p>Copy the token and paste it in the field above. ⚠️ You only see it once!</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STUDY GUIDE ────────────────────────────── -->
+    <div class="page" id="page-studyguide">
+      <div class="sg-main-layout">
+
+        <!-- LEFT: tabs + content -->
+        <div class="sg-panel-left">
+
+          <!-- Tab switcher -->
+          <div class="sg-tabs">
+            <button class="sg-tab active" id="sgTab1" onclick="sgSwitchTab(1)">📋 Quizzes &amp; Tests</button>
+            <button class="sg-tab" id="sgTab2" onclick="sgSwitchTab(2)">🔍 Search by Topic</button>
+          </div>
+
+          <!-- TAB 1: Quiz/test picker -->
+          <div id="sgTabContent1">
+            <div class="sg-step-label" style="margin-top:14px;">Your Upcoming Quizzes &amp; Tests</div>
+            <div id="sgTestList" style="margin-top:8px;">
+              <div class="ai-load"><div class="spin"></div><span>Loading from Canvas…</span></div>
+            </div>
+            <div id="sgGenerateRow" style="display:none;margin-top:14px;"></div>
+            <div id="sgBar" style="display:none;margin-top:10px;"></div>
+            <div id="sgOutput" style="display:none;margin-top:16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                <div class="sg-meta" id="sgMeta" style="flex:1;"></div>
+                <button class="btn btn-ghost btn-sm" onclick="copyStudyGuide()">📋 Copy</button>
+                <button class="btn btn-ghost btn-sm" onclick="printStudyGuide()">🖨️ Print</button>
+                <button class="btn btn-ghost btn-sm" onclick="sgReset()">← Back</button>
+              </div>
+              <div class="sg-output" id="sgContent"></div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Teacher + topic search -->
+          <div id="sgTabContent2" style="display:none;">
+            <div class="sg-step-label" style="margin-top:14px;">1. Pick Your Class</div>
+            <div class="sg-course-picker" id="tgCoursePicker" style="margin-top:8px;">
+              <div class="ai-load"><div class="spin"></div><span>Loading classes…</span></div>
+            </div>
+
+            <div id="tgTopicRow" style="display:none;margin-top:16px;">
+              <div class="sg-step-label">2. What Topic Do You Want to Study?</div>
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <input type="text" id="tgTopic" placeholder="e.g. Photosynthesis, World War II, Quadratic equations…" style="flex:1;" onkeydown="if(event.key==='Enter')generateTopicGuide()"/>
+                <button class="btn btn-green" onclick="generateTopicGuide()">🔍 Search</button>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;" id="tgSuggestions"></div>
+            </div>
+
+            <div id="tgBar" style="display:none;margin-top:12px;"></div>
+            <div id="tgOutput" style="display:none;margin-top:16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                <div class="sg-meta" id="tgMeta" style="flex:1;"></div>
+                <button class="btn btn-ghost btn-sm" onclick="copyTxt(sgGuideText)">📋 Copy</button>
+                <button class="btn btn-ghost btn-sm" onclick="printStudyGuide()">🖨️ Print</button>
+                <button class="btn btn-ghost btn-sm" onclick="tgReset()">← Back</button>
+              </div>
+              <div class="sg-output" id="tgContent"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: AI Tutor — always visible -->
+        <div class="sg-panel-right">
+          <div class="tutor-panel" style="max-height:calc(100vh - 90px);">
+            <div class="tutor-header">
+              <div style="font-size:1.3rem;">🤖</div>
+              <div>
+                <div style="font-weight:700;font-size:0.88rem;">AI Study Assistant</div>
+                <div style="font-size:0.7rem;color:var(--muted);" id="tutorSubtitle">Pick a quiz or topic to get started</div>
+              </div>
+            </div>
+            <div class="tutor-chips" id="tutorChips" style="display:none;">
+              <button class="tutor-chip" onclick="tutorAsk('Give me 10 more practice problems with full worked solutions')">✏️ More practice problems</button>
+              <button class="tutor-chip" onclick="tutorAsk('Explain the hardest concept step by step like I have never seen it before')">🔍 Step-by-step explanation</button>
+              <button class="tutor-chip" onclick="tutorAsk('Make flashcard notes — term on one side, definition on the other — for everything I need to memorize')">🗂️ Flashcard notes</button>
+              <button class="tutor-chip" onclick="tutorAsk('Give me memory tricks and mnemonics for the most important facts and vocab in this material')">🧠 Memory tricks</button>
+              <button class="tutor-chip" onclick="tutorAsk('What are the most likely exam questions on this topic? Give me 5 with full model answers')">🎯 Likely exam questions</button>
+            </div>
+            <div class="tutor-messages" id="tutorMessages">
+              <div class="tutor-msg tutor-ai">
+                <div class="tutor-bubble">👋 Hey Devan! Pick a quiz on the left or search a topic — I'll read your teacher's actual Canvas notes and build you a study guide. Then ask me anything!</div>
+              </div>
+            </div>
+            <div class="tutor-input-row">
+              <input type="text" class="tutor-input" id="tutorInput" placeholder="Ask me anything…" onkeydown="if(event.key==='Enter')tutorSend()"/>
+              <button class="tutor-send" onclick="tutorSend()">➤</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── EMAIL DRAFTER ─────────────────────────────── -->
+    <div class="page" id="page-emaildraft">
+      <div class="ed-layout">
+
+        <!-- LEFT: form -->
+        <div class="ed-left">
+          <div class="card">
+            <div class="card-title">✉️ Email Your Teacher</div>
+            <p style="font-size:0.8rem;color:var(--muted);margin-bottom:20px;">Tell me what you need to say — I'll write the whole email for you. Just fill in a few fields.</p>
+
+            <!-- Reason chips -->
+            <div class="fg" style="margin-bottom:16px;">
+              <label>What's this email about?</label>
+              <div class="ed-reason-grid" id="edReasonGrid">
+                <button class="ed-reason" data-val="absence"      onclick="edSelectReason(this)">😷 I was absent</button>
+                <button class="ed-reason" data-val="missing_work" onclick="edSelectReason(this)">📋 Missing work</button>
+                <button class="ed-reason" data-val="extension"    onclick="edSelectReason(this)">⏰ Need an extension</button>
+                <button class="ed-reason" data-val="late_work"    onclick="edSelectReason(this)">📤 Submitting late</button>
+                <button class="ed-reason" data-val="grade"        onclick="edSelectReason(this)">📊 Ask about a grade</button>
+                <button class="ed-reason" data-val="help"         onclick="edSelectReason(this)">🙋 Need extra help</button>
+                <button class="ed-reason" data-val="custom"       onclick="edSelectReason(this)">✏️ Something else</button>
+              </div>
+            </div>
+
+            <!-- Custom reason (shows when "Something else" selected) -->
+            <div class="fg" id="edCustomRow" style="display:none;margin-bottom:14px;">
+              <label>Describe what you want to say</label>
+              <input type="text" id="edCustomReason" placeholder="e.g. I forgot my textbook and need the pages…"/>
+            </div>
+
+            <div class="row c2" style="gap:12px;">
+              <div class="fg">
+                <label>Assignment Name <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+                <input type="text" id="edAssignment" placeholder="e.g. Chapter 5 Essay"/>
+              </div>
+              <div class="fg">
+                <label>Extra Context <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+                <input type="text" id="edExtra" placeholder="e.g. I had a doctor's appointment"/>
+              </div>
+            </div>
+
+            <div class="row c2" style="gap:12px;margin-top:2px;">
+              <div class="fg">
+                <label>Teacher's Name <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+                <input type="text" id="edTeacherName" placeholder="e.g. Ms. Smith"/>
+              </div>
+              <div class="fg">
+                <label>Teacher's Email <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+                <input type="text" id="edTeacherEmail" placeholder="teacher@school.edu"/>
+              </div>
+            </div>
+
+            <div class="fg" style="margin-top:2px;">
+              <label>Your Email <span style="color:var(--muted);font-weight:400;">(to open in Gmail)</span></label>
+              <input type="text" id="edStudentEmail" placeholder="you@gmail.com" value="devanbachhawat17@gmail.com"/>
+            </div>
+
+            <button class="btn btn-blue" style="width:100%;margin-top:16px;" onclick="draftEmail()">✨ Write My Email</button>
+            <div id="edBar" style="display:none;margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: draft output -->
+        <div class="ed-right">
+          <div class="ed-preview" id="edPreview">
+            <div class="ed-preview-empty" id="edEmpty">
+              <div style="font-size:2.5rem;margin-bottom:12px;">✉️</div>
+              <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Your email will appear here</div>
+              <div style="font-size:0.8rem;color:var(--muted);line-height:1.6;">Pick a reason on the left, fill in a couple fields, and hit <b>Write My Email</b>. I'll draft the whole thing for you.</div>
+            </div>
+
+            <div id="edDraft" style="display:none;">
+              <div class="ed-draft-header">
+                <div class="ed-field-row">
+                  <span class="ed-field-label">TO</span>
+                  <span class="ed-field-val" id="edToDisplay">—</span>
+                </div>
+                <div class="ed-field-row">
+                  <span class="ed-field-label">FROM</span>
+                  <span class="ed-field-val" id="edFromDisplay">—</span>
+                </div>
+                <div class="ed-field-row">
+                  <span class="ed-field-label">SUBJECT</span>
+                  <span class="ed-field-val" id="edSubjectDisplay" style="font-weight:700;color:var(--text);"></span>
+                </div>
+              </div>
+              <div class="ed-body" id="edBodyDisplay"></div>
+              <div class="ed-actions">
+                <button class="btn btn-blue" onclick="openInGmail()">📧 Open in Gmail</button>
+                <button class="btn btn-ghost btn-sm" onclick="copyDraft()">📋 Copy</button>
+                <button class="btn btn-ghost btn-sm" onclick="regenerateDraft()">🔄 Rewrite</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── SETUP GUIDE ─────────────────────────────── -->
+    <div class="page" id="page-guide">
+      <div class="home-hero" style="margin-bottom:20px;">
+        <div class="home-hero-icon">📖</div>
+        <div>
+          <h1>Setup Guide</h1>
+          <p>Step-by-step instructions for connecting every service to StudyPulse. You'll need to log into each one yourself to get the credentials — but this tells you exactly what to click.</p>
+        </div>
+      </div>
+
+      <!-- CANVAS -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(64,112,255,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🔵</div>
+          <div><div style="font-weight:700;font-size:0.95rem;">Canvas LMS — API Token</div><div style="font-size:0.75rem;color:var(--muted);">Required to sync your assignments automatically</div></div>
+          <span style="margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(239,68,68,0.1);color:var(--red);">REQUIRED</span>
+        </div>
+        <div class="setup-step"><div class="setup-num">1</div><div><h4>Go to your school's Canvas</h4><p>Open your browser and go to your Canvas URL — e.g. <b style="color:var(--blue)">somsd.instructure.com</b> — and sign in with your school account.</p></div></div>
+        <div class="setup-step"><div class="setup-num">2</div><div><h4>Open Account Settings</h4><p>Click your <b>profile picture / initials</b> in the top-left corner → click <b>Settings</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">3</div><div><h4>Scroll to Approved Integrations</h4><p>Scroll down the Settings page until you see the <b>Approved Integrations</b> section. Click <b>+ New Access Token</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">4</div><div><h4>Create the token</h4><p>In the <b>Purpose</b> field type <b>StudyPulse</b>. Leave the expiry date blank (so it never expires). Click <b>Generate Token</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">5</div><div><h4>Copy it immediately</h4><p>⚠️ Canvas only shows the token <b>once</b>. Copy it now and go to the <span class="step-link" onclick="go('canvas',ntab(4))">🔵 Canvas Sync</span> tab and paste it there.</p></div></div>
+      </div>
+
+      <!-- RESEND -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📧</div>
+          <div><div style="font-weight:700;font-size:0.95rem;">Resend — Email Reminders</div><div style="font-size:0.75rem;color:var(--muted);">Sends your daily and weekly HTML digest emails · Free forever</div></div>
+          <span style="margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(239,68,68,0.1);color:var(--red);">REQUIRED</span>
+        </div>
+        <div class="setup-step"><div class="setup-num">1</div><div><h4>Create a free account</h4><p>Go to <b style="color:var(--blue)">resend.com</b> → click <b>Get Started Free</b> → sign up with any email. No credit card needed.</p></div></div>
+        <div class="setup-step"><div class="setup-num">2</div><div><h4>Go to API Keys</h4><p>In the left sidebar click <b>API Keys</b> → click <b>Create API Key</b> → name it StudyPulse → click <b>Add</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">3</div><div><h4>Copy the key</h4><p>It starts with <b>re_</b>. Copy it and go to the <span class="step-link" onclick="go('email',ntab(3))">📧 Email Reminders</span> tab and paste it there along with your email address.</p></div></div>
+        <div class="setup-step" style="border-bottom:none;"><div class="setup-num">4</div><div><h4>Send a test email</h4><p>Click <b>Save Settings</b> then <b>Send Test Email</b> to confirm it works. Check your inbox.</p></div></div>
+      </div>
+
+      <!-- ANTHROPIC -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(124,58,237,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">✨</div>
+          <div><div style="font-weight:700;font-size:0.95rem;">Anthropic — AI Reminders</div><div style="font-size:0.75rem;color:var(--muted);">Powers the AI-written reminder messages and coaching notes · Optional</div></div>
+          <span style="margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(245,158,11,0.1);color:var(--warn);">OPTIONAL</span>
+        </div>
+        <div class="setup-step"><div class="setup-num">1</div><div><h4>Create an Anthropic account</h4><p>Go to <b style="color:var(--blue)">console.anthropic.com</b> → sign up. You get free credits to start — no card required initially.</p></div></div>
+        <div class="setup-step"><div class="setup-num">2</div><div><h4>Get an API key</h4><p>In the console, go to <b>API Keys</b> → click <b>Create Key</b> → name it StudyPulse → copy the key (starts with <b>sk-ant-</b>).</p></div></div>
+        <div class="setup-step" style="border-bottom:none;"><div class="setup-num">3</div><div><h4>Add it to your .env file</h4><p>Open the <b>.env</b> file in your StudyPulse folder and add: <b style="color:var(--blue);">ANTHROPIC_API_KEY=sk-ant-yourkey</b>. Restart the server. AI reminders will activate automatically.</p></div></div>
+      </div>
+
+      <!-- SLACK -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💬</div>
+          <div><div style="font-weight:700;font-size:0.95rem;">Slack — Channel Reminders</div><div style="font-size:0.75rem;color:var(--muted);">Posts assignment reminders to a Slack channel or DM · Free</div></div>
+          <span style="margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(64,112,255,0.1);color:var(--blue);">OPTIONAL</span>
+        </div>
+        <div class="setup-step"><div class="setup-num">1</div><div><h4>Go to api.slack.com</h4><p>Sign in with your Slack account → click <b>Create an App</b> → choose <b>From scratch</b> → name it StudyPulse → pick your workspace.</p></div></div>
+        <div class="setup-step"><div class="setup-num">2</div><div><h4>Enable Incoming Webhooks</h4><p>In your app settings, click <b>Incoming Webhooks</b> in the left sidebar → toggle it <b>On</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">3</div><div><h4>Create a Webhook</h4><p>Scroll down → click <b>Add New Webhook to Workspace</b> → pick the channel you want reminders in (or pick a DM with yourself) → click <b>Allow</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">4</div><div><h4>Copy the Webhook URL</h4><p>Copy the URL that appears — it starts with <b style="color:var(--blue)">https://hooks.slack.com/services/</b></p></div></div>
+        <div class="setup-step" style="border-bottom:none;"><div class="setup-num">5</div><div><h4>Add it to StudyPulse</h4><p>Open the <b>.env</b> file and add: <b style="color:var(--blue);">SLACK_WEBHOOK=https://hooks.slack.com/services/yoururl</b> then restart the server.</p></div></div>
+      </div>
+
+      <!-- NTFY -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🔔</div>
+          <div><div style="font-weight:700;font-size:0.95rem;">ntfy — Phone Notifications</div><div style="font-size:0.75rem;color:var(--muted);">Instant push notifications to your phone · 100% free, no account needed</div></div>
+          <span style="margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(64,112,255,0.1);color:var(--blue);">OPTIONAL</span>
+        </div>
+        <div class="setup-step"><div class="setup-num">1</div><div><h4>Download the ntfy app</h4><p>Search <b>ntfy</b> on the App Store (green icon) or Google Play — it's free. Install it.</p></div></div>
+        <div class="setup-step"><div class="setup-num">2</div><div><h4>Subscribe to your topic</h4><p>Open ntfy → tap <b>+</b> → tap <b>Subscribe to topic</b> → type <b style="color:var(--blue);">studypulse-devan</b> → tap Subscribe.</p></div></div>
+        <div class="setup-step" style="border-bottom:none;"><div class="setup-num">3</div><div><h4>Enable notifications</h4><p>Allow notifications when prompted. Go to iPhone Settings → Notifications → ntfy → make sure <b>Allow Notifications</b> is on.</p></div></div>
+      </div>
+
+      <!-- BREVO -->
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(64,112,255,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📱</div>
+          <div><div style="font-weight:700;font-size:0.95rem;">Brevo — SMS via T-Mobile Gateway</div><div style="font-size:0.75rem;color:var(--muted);">Alternative SMS method using email-to-text gateway · Free 300/day</div></div>
+          <span style="margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(64,112,255,0.1);color:var(--blue);">OPTIONAL</span>
+        </div>
+        <div class="setup-step"><div class="setup-num">1</div><div><h4>Create a free Brevo account</h4><p>Go to <b style="color:var(--blue)">brevo.com</b> → sign up free → complete the onboarding survey (choose Personal, Technology, under 1,000 emails/month).</p></div></div>
+        <div class="setup-step"><div class="setup-num">2</div><div><h4>Find your SMTP credentials</h4><p>Go to <b>Settings → SMTP & API</b>. You'll see your <b>SMTP Login</b> (looks like <b>a12345@smtp-brevo.com</b>) and a button to generate an <b>SMTP Key</b>.</p></div></div>
+        <div class="setup-step"><div class="setup-num">3</div><div><h4>Generate the SMTP Key</h4><p>Click <b>Generate a new SMTP key</b> → name it StudyPulse → copy the long key that appears.</p></div></div>
+        <div class="setup-step" style="border-bottom:none;"><div class="setup-num">4</div><div><h4>Enable SMS in T-Mobile</h4><p>Make sure <b>Email to Text</b> is enabled on your T-Mobile account. You can check this in the T-Mobile app under Account → Add-ons, or call T-Mobile support.</p></div></div>
+      </div>
+    </div>
+
+  </div><!-- end .pages -->
+</div><!-- end #app -->
+
+<!-- MODAL -->
+<div class="overlay" id="modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub" id="mSub"></div>
+    <div id="mBody"></div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal').style.display='none'">Close</button></div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────
+let canvasItems=[], manualItems=[], activeSrc='all', activeTyp='all';
+let surveyData = { name:'', grade:'', times:[], weekly:'', style:'', tone:'' };
+let surveyStep = 1;
+
+// ─── INIT ─────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  // Current date on home hero
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  // Set default due date
+  const t = new Date(Date.now()+86400000); t.setHours(23,59,0,0);
+  document.getElementById('mDue').value = t.toISOString().slice(0,16);
+
+  // Check if survey already done
+  if (localStorage.getItem('sp_survey_done')) {
+    document.getElementById('surveyOverlay').style.display = 'none';
+  }
+
+  await loadManual();
+  await loadConfig();
+  renderStats();
+  renderList();
+  renderRecent();
+});
+
+// ─── SURVEY ───────────────────────────────────────
+function pick(el, group) {
+  el.closest('.sq-options').querySelectorAll('.sq-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  surveyData[group] = el.textContent.trim();
+}
+function toggle(el, group) {
+  el.classList.toggle('selected');
+  const vals = [...el.closest('.sq-options').querySelectorAll('.sq-opt.selected')].map(o=>o.textContent.trim());
+  surveyData[group] = vals;
+}
+function surveyNext() {
+  if (surveyStep === 1) {
+    const name = document.getElementById('surveyName').value.trim();
+    if (name) { surveyData.name = name; document.getElementById('emailName').value = name; }
+  }
+  if (surveyStep === 4) {
+    localStorage.setItem('sp_survey_done','1');
+    localStorage.setItem('sp_survey_data', JSON.stringify(surveyData));
+    document.getElementById('surveyOverlay').style.display = 'none';
+    return;
+  }
+  surveyStep++;
+  updateSurveyUI();
+}
+function surveyBack() {
+  if (surveyStep <= 1) return;
+  surveyStep--;
+  updateSurveyUI();
+}
+function updateSurveyUI() {
+  document.querySelectorAll('.survey-step').forEach((s,i) => {
+    s.classList.toggle('active', i+1 === surveyStep);
+  });
+  const dots = document.querySelectorAll('.survey-dot');
+  dots.forEach((d,i) => {
+    d.classList.remove('done','active');
+    if (i+1 < surveyStep) d.classList.add('done');
+    else if (i+1 === surveyStep) d.classList.add('active');
+  });
+  document.getElementById('surveyBack').style.visibility = surveyStep > 1 ? 'visible' : 'hidden';
+  document.getElementById('surveyNext').textContent = surveyStep === 4 ? '🚀 Enter StudyPulse' : 'Next →';
+}
+
+// ─── NAVIGATION ───────────────────────────────────
+function go(pageId, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+pageId).classList.add('active');
+  if (el) el.classList.add('active');
+  if (pageId === 'studyguide') loadSgCourses();
+}
+function ntab(i) { return document.querySelectorAll('.ntab')[i]; }
+
+// ─── LOAD CONFIG ──────────────────────────────────
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config/status');
+    const d = await r.json();
+    if (d.configured) {
+      badge('bdgCanvas','Canvas: Connected ✅');
+      if (d.domain) document.getElementById('canvasDomain').value = d.domain;
+      try {
+        const sr = await fetch('/api/sync-status');
+        const sd = await sr.json();
+        if (sd.items && sd.items.length) {
+          canvasItems = sd.items;
+          setBar('sb-asgn','ok',`✅ ${sd.items.length} Canvas items loaded automatically.`);
+        }
+      } catch {}
+    }
+    if (d.email && d.email.enabled) {
+      badge('bdgEmail','Email: Active 📧');
+      document.getElementById('testBtn').disabled = false;
+      document.getElementById('emailTriggers').style.display = 'block';
+      if (d.email.emailTo)     document.getElementById('emailTo').value    = d.email.emailTo;
+      if (d.email.studentName) document.getElementById('emailName').value  = d.email.studentName;
+      setBar('sb-email','ok','✅ Email reminders are active. Send a test or trigger a digest below.');
+    }
+  } catch(e) { console.log('Config load error:', e.message); }
+}
+
+// ─── EMAIL (RESEND) ───────────────────────────────
+async function saveResend() {
+  const name = document.getElementById('emailName').value.trim();
+  const to   = document.getElementById('emailTo').value.trim();
+  const key  = document.getElementById('resendKey').value.trim();
+  if (!to || !key) { setBar('sb-email','err','❌ Your email and Resend API key are required.'); return; }
+  setBar('sb-email','load','💾 Saving...');
+  try {
+    const r = await fetch('/api/resend-config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ resendApiKey: key, emailTo: to, studentName: name })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    setBar('sb-email','ok','✅ Saved! Now click "Send Test Email" to confirm it works.');
+    badge('bdgEmail','Email: Active 📧');
+    document.getElementById('testBtn').disabled = false;
+    document.getElementById('emailTriggers').style.display = 'block';
+  } catch(e) { setBar('sb-email','err',`❌ ${e.message}`); }
+}
+
+// ─── EMAIL ────────────────────────────────────────
+function toggleHelp() {
+  const h = document.getElementById('helpBox');
+  h.style.display = h.style.display === 'none' ? 'block' : 'none';
+}
+async function saveEmail() {
+  const name   = document.getElementById('emailName').value.trim();
+  const to     = document.getElementById('emailTo').value.trim();
+  const gmail  = document.getElementById('emailGmail').value.trim();
+  const pass   = document.getElementById('emailAppPass').value.trim();
+  if (!to || !gmail || !pass) { setBar('sb-email','err','❌ Recipient email, Gmail address, and App Password are all required.'); return; }
+  setBar('sb-email','load','💾 Saving...');
+  try {
+    const r = await fetch('/api/email-config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({emailTo:to, studentName:name, gmailUser:gmail, gmailAppPass:pass})
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    setBar('sb-email','ok',`✅ Saved! Reminders will go to ${d.emailTo}. Now click "Send Test Email" →`);
+    badge('bdgEmail','Email: Active 📧');
+    document.getElementById('testBtn').disabled = false;
+    document.getElementById('emailTriggers').style.display = 'block';
+  } catch(e) { setBar('sb-email','err',`❌ ${e.message}`); }
+}
+async function testEmail() {
+  setBar('sb-email','load','📧 Sending test email...');
+  try {
+    const r = await fetch('/api/test-email', {method:'POST'});
+    const d = await r.json();
+    if (d.success) setBar('sb-email','ok','✅ Test email sent! Check your inbox — also check Spam just in case.');
+    else setBar('sb-email','err',`❌ Failed: ${d.reason}`);
+  } catch(e) { setBar('sb-email','err',`❌ ${e.message}`); }
+}
+async function sendEmail(type) {
+  const lbl = {'daily-morning':'morning briefing','daily-evening':'evening check-in','weekly':'weekly summary'};
+  setBar('sb-email','load',`📧 Sending ${lbl[type]}...`);
+  const msg = document.getElementById('emailMsg'); msg.style.display='none';
+  try {
+    const r = await fetch('/api/send-email', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type})
+    });
+    const d = await r.json();
+    if (d.success) {
+      setBar('sb-email','ok',`✅ ${lbl[type]} sent! Check your inbox.`);
+      msg.textContent = `✅ Sent: "${d.subject}"`; msg.style.display='block';
+    } else {
+      setBar('sb-email','err',`❌ ${d.reason || 'Send failed — check your settings.'}`);
+    }
+  } catch(e) { setBar('sb-email','err',`❌ ${e.message}`); }
+}
+
+// ─── CANVAS ───────────────────────────────────────
+async function syncCanvas() {
+  const domain = document.getElementById('canvasDomain').value.trim();
+  const token  = document.getElementById('apiToken').value.trim();
+  if (!domain || !token) { setBar('sb-canvas','err','❌ Both Canvas domain and API token are required.'); return; }
+  setBar('sb-canvas','load','📚 Connecting to Canvas and fetching all assignments...');
+  document.getElementById('syncBtn').disabled = true;
+  try {
+    await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain,token})});
+    const res = await fetch('/api/sync');
+    const d   = await res.json();
+    if (d.error) throw new Error(d.error);
+    canvasItems = d.items;
+    renderStats(); renderList();
+    setBar('sb-canvas','ok',`✅ Synced ${d.items.length} items from ${d.courses} courses.`);
+    setBar('sb-asgn','ok',`✅ Showing ${d.items.length} Canvas items.`);
+    badge('bdgCanvas','Canvas: Connected ✅');
+  } catch(e) { setBar('sb-canvas','err',`❌ ${e.message}`); }
+  document.getElementById('syncBtn').disabled = false;
+}
+
+// ─── MANUAL ───────────────────────────────────────
+async function loadManual() {
+  try { const r = await fetch('/api/manual'); manualItems = await r.json(); } catch { manualItems = []; }
+}
+async function addManual() {
+  const title = document.getElementById('mTitle').value.trim();
+  const due   = document.getElementById('mDue').value;
+  if (!title || !due) { setBar('sb-add','err','❌ Title and due date are required.'); return; }
+  const body = {
+    title, course: document.getElementById('mCourse').value.trim() || 'Other',
+    type:    document.getElementById('mType').value,
+    due:     new Date(due).toISOString(),
+    points:  document.getElementById('mPoints').value || null,
+    notes:   document.getElementById('mNotes').value.trim(),
+    missing: document.getElementById('mMissing').checked
+  };
+  try {
+    const r    = await fetch('/api/manual', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const item = await r.json();
+    manualItems.push(item);
+    ['mTitle','mCourse','mPoints','mNotes'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('mMissing').checked = false;
+    renderStats(); renderList(); renderRecent();
+    setBar('sb-add','ok',`✅ "${item.title}" added!`);
+  } catch { setBar('sb-add','err','❌ Failed to save.'); }
+}
+async function delManual(id) {
+  await fetch(`/api/manual/${id}`, {method:'DELETE'});
+  manualItems = manualItems.filter(i => i.id !== id);
+  renderStats(); renderList(); renderRecent();
+}
+async function toggleMissing(id) {
+  const item = manualItems.find(i => i.id === id);
+  if (!item) return;
+  item.missing = !item.missing;
+  await fetch(`/api/manual/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item)});
+  renderStats(); renderList();
+}
+
+// ─── RENDER ───────────────────────────────────────
+function all() {
+  return [
+    ...canvasItems.map(i=>({...i,source:'canvas'})),
+    ...manualItems.map(i=>({...i,source:'manual'}))
+  ].sort((a,b) => new Date(a.due)-new Date(b.due));
+}
+function renderStats() {
+  const items = all(), now = new Date();
+  document.getElementById('s1').textContent = items.length;
+  document.getElementById('s2').textContent = items.filter(i=>{const d=new Date(i.due)-now;return d>0&&d<86400000;}).length;
+  document.getElementById('s3').textContent = items.filter(i=>{const d=new Date(i.due)-now;return d>0&&d<7*86400000;}).length;
+  document.getElementById('s4').textContent = manualItems.length;
+  document.getElementById('s5').textContent = manualItems.filter(i=>i.missing).length;
+}
+function urg(item) {
+  if (item.missing) return 'missing';
+  const d = new Date(item.due)-new Date();
+  if (d<0) return 'done';
+  if (d<86400000) return 'urgent';
+  if (d<3*86400000) return 'soon';
+  return 'upcoming';
+}
+function urgLabel(u) {
+  return {urgent:'🔴 Due Today',soon:'🟡 Due Soon',done:'✅ Past Due',upcoming:'🔵 Upcoming',missing:'⚠️ Missing'}[u];
+}
+function fmtDue(iso) {
+  const due=new Date(iso),now=new Date(),d=due-now;
+  const dateStr=due.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  if(d<0) return dateStr;
+  const h=Math.floor(d/3600000);
+  if(h<24) return `Today by ${due.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+  return `${dateStr} · ${Math.floor(d/86400000)}d left`;
+}
+function dueChip(item) {
+  const u=urg(item);
+  const colors={urgent:'#f87171',soon:'#fbbf24',upcoming:'#60a5fa',done:'#9ca3af',missing:'#f87171'};
+  return `<span style="font-size:0.78rem;font-weight:700;color:${colors[u]};letter-spacing:0.2px;">${fmtDue(item.due)}</span>`;
+}
+function tagClass(type) {
+  const m={quiz:'t-q',assignment:'t-a',homework:'t-h',project:'t-p',test:'t-t',exam:'t-e'};
+  return m[type]||'t-d';
+}
+function renderList() {
+  let items = all();
+  if (activeSrc==='canvas')  items=items.filter(i=>i.source==='canvas');
+  if (activeSrc==='manual')  items=items.filter(i=>i.source==='manual');
+  if (activeSrc==='missing') items=items.filter(i=>i.missing);
+  if (activeTyp==='urgent')  items=items.filter(i=>['urgent','soon','missing'].includes(urg(i)));
+  if (activeTyp==='assign')  items=items.filter(i=>['assignment','homework','project'].includes(i.type));
+  if (activeTyp==='quiz')    items=items.filter(i=>['quiz','exam','test'].includes(i.type));
+
+  const el = document.getElementById('alist');
+  if (!items.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🎉</div><p>Nothing matches this filter.</p></div>'; return; }
+
+  el.innerHTML = items.map((item,idx) => {
+    const u=urg(item), enc=encodeURIComponent(JSON.stringify(item)), isM=item.source==='manual';
+    return `<div class="aitem ${item.missing?'miss':''}" style="animation-delay:${idx*0.018}s">
+      <div class="abar ${u}"></div>
+      <div class="abody">
+        <div class="atitle">${item.title}</div>
+        <div class="ameta">
+          <div class="dot dot-${item.source[0]}"></div>
+          <span class="tag ${tagClass(item.type)}">${item.type}</span>
+          ${item.missing?'<span class="tag t-m">⚠️ missing</span>':''}
+          ${item.source==='manual'?'<span class="tag t-paper">paper</span>':''}
+          <span class="mt">${item.course}</span>
+          ${dueChip(item)}
+          ${item.points?`<span class="mt">· ${item.points}pts</span>`:''}
+        </div>
+        ${item.notes?`<div class="anote">📎 ${item.notes}</div>`:''}
+      </div>
+      <div class="aright">
+        <span class="ubadge ${u}">${urgLabel(u)}</span>
+        <div class="aact">
+          <button class="btn btn-ghost btn-sm" onclick="openModal('${enc}')">✨ Remind</button>
+          ${isM?`<button class="btn btn-ghost btn-sm" onclick="toggleMissing('${item.id}')">${item.missing?'✅':'⚠️'}</button>`:''}
+          ${isM?`<button class="btn btn-red btn-sm" onclick="delManual('${item.id}')">🗑️</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderRecent() {
+  const el = document.getElementById('recentList');
+  const r = [...manualItems].reverse().slice(0,5);
+  if (!r.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📝</div><p>No manual assignments yet.</p></div>'; return; }
+  el.innerHTML = r.map(item=>`
+    <div class="aitem" style="margin-bottom:7px;">
+      <div class="abar ${urg(item)}"></div>
+      <div class="abody"><div class="atitle">${item.title}</div>
+        <div class="ameta"><span class="tag ${tagClass(item.type)}">${item.type}</span><span class="mt">${item.course}</span>${dueChip(item)}</div>
+      </div>
+      <div class="aright"><span class="ubadge ${urg(item)}">${urgLabel(urg(item))}</span>
+        <button class="btn btn-red btn-sm" onclick="delManual('${item.id}')">🗑️ Remove</button>
+      </div>
+    </div>`).join('');
+}
+function setSrc(s,el) {
+  activeSrc=s;
+  document.querySelectorAll('.src').forEach(x=>x.className='src');
+  const m={all:'sa',canvas:'sb',manual:'sc',missing:'sd'};
+  el.classList.add(m[s]);
+  renderList();
+}
+function setTyp(t,el) {
+  activeTyp=t;
+  document.querySelectorAll('.typ').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+// ─── REMINDER MODAL ───────────────────────────────
+function openModal(enc) {
+  const item = JSON.parse(decodeURIComponent(enc));
+  document.getElementById('modalTitle').textContent = item.title;
+  document.getElementById('mSub').textContent   = `${item.course} · ${fmtDue(item.due)}`;
+  const safe = JSON.stringify(item).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  document.getElementById('mBody').innerHTML = `
+    <div class="row c2" style="margin-bottom:10px;">
+      <div class="fg"><label>Student Name</label><input type="text" id="ms" placeholder="e.g. Darshan"/></div>
+      <div class="fg"><label>Send To</label><select id="mt"><option>Student</option><option>Parent</option><option>Both</option></select></div>
+    </div>
+    <div class="fg" style="margin-bottom:12px;"><label>Extra Context</label><textarea id="mc" placeholder="e.g. struggles with this subject, needs extra push"></textarea></div>
+    <button class="btn btn-blue" style="width:100%" onclick="genReminder('${safe}')">✨ Generate AI Reminder</button>
+    <div id="mr"></div>`;
+  document.getElementById('modal').style.display='flex';
+}
+async function genReminder(itemStr) {
+  const item=JSON.parse(itemStr);
+  const student=document.getElementById('ms').value||'the student';
+  const target=document.getElementById('mt').value;
+  const context=document.getElementById('mc').value;
+  document.getElementById('mr').innerHTML=`<div class="ai-load"><div class="spin"></div> Generating personalized reminder...</div>`;
+  try {
+    const r = await fetch('/api/generate-reminder', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({item,studentName:student,target,context})
+    });
+    const d = await r.json();
+    const msg = d.message || 'Could not generate.';
+    document.getElementById('mr').innerHTML=`
+      <div class="ai-box">${msg}</div>
+      <div style="display:flex;gap:7px;margin-top:9px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="copyTxt(\`${msg.replace(/`/g,"'")}\`)">📋 Copy</button>
+      </div>`;
+  } catch { document.getElementById('mr').innerHTML=`<div style="color:var(--red);font-size:0.82rem;padding:10px;">Generation failed — make sure the server is running.</div>`; }
+}
+
+// ─── SURVEY RESET ─────────────────────────────────
+function resetSurvey() {
+  localStorage.removeItem('sp_survey_done');
+  localStorage.removeItem('sp_survey_data');
+  surveyStep = 1;
+  surveyData = { name:'', grade:'', times:[], weekly:'', style:'', tone:'' };
+  updateSurveyUI();
+  document.getElementById('surveyOverlay').style.display = 'flex';
+}
+
+// ─── EMAIL DRAFTER ────────────────────────────────
+let edSelectedReason = null;
+let edLastDraft = null;
+
+function edSelectReason(el) {
+  document.querySelectorAll('.ed-reason').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  edSelectedReason = el.dataset.val;
+  document.getElementById('edCustomRow').style.display = edSelectedReason === 'custom' ? 'block' : 'none';
+}
+
+async function draftEmail() {
+  if (!edSelectedReason) { alert('Pick a reason for the email first.'); return; }
+  const bar = document.getElementById('edBar');
+  bar.style.display = 'block';
+  bar.className = 'sbar load';
+  bar.innerHTML = '<div class="spin"></div><span>Writing your email…</span>';
+
+  try {
+    const r = await fetch('/api/draft-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: edSelectedReason,
+        reason: document.getElementById('edCustomReason').value.trim(),
+        assignmentName: document.getElementById('edAssignment').value.trim(),
+        extraContext: document.getElementById('edExtra').value.trim(),
+        teacherName: document.getElementById('edTeacherName').value.trim(),
+        teacherEmail: document.getElementById('edTeacherEmail').value.trim(),
+        studentEmail: document.getElementById('edStudentEmail').value.trim(),
+        studentName: 'Devan'
+      })
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    edLastDraft = data;
+    bar.className = 'sbar ok';
+    bar.innerHTML = '<span>✅ Email drafted!</span>';
+
+    // Render the draft
+    document.getElementById('edEmpty').style.display = 'none';
+    document.getElementById('edDraft').style.display = 'block';
+    document.getElementById('edToDisplay').textContent = data.teacherEmail || '(enter teacher email)';
+    document.getElementById('edFromDisplay').textContent = data.studentEmail || '(enter your email)';
+    document.getElementById('edSubjectDisplay').textContent = data.subject || '';
+    document.getElementById('edBodyDisplay').textContent = data.body || data.draft || '';
+  } catch(e) {
+    bar.className = 'sbar err';
+    bar.innerHTML = `<span>❌ ${e.message}</span>`;
+  }
+}
+
+function regenerateDraft() {
+  document.getElementById('edDraft').style.display = 'none';
+  document.getElementById('edEmpty').style.display = 'flex';
+  draftEmail();
+}
+
+function copyDraft() {
+  if (!edLastDraft) return;
+  const text = `Subject: ${edLastDraft.subject}\n\n${edLastDraft.body || edLastDraft.draft}`;
+  navigator.clipboard.writeText(text);
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✅ Copied!';
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+function openInGmail() {
+  if (!edLastDraft) return;
+  const to = encodeURIComponent(document.getElementById('edTeacherEmail').value.trim() || '');
+  const su = encodeURIComponent(edLastDraft.subject || '');
+  const body = encodeURIComponent(edLastDraft.body || edLastDraft.draft || '');
+  window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${su}&body=${body}`, '_blank');
+}
+
+// ─── UTILS ────────────────────────────────────────
+function setBar(id,type,msg) {
+  const el=document.getElementById(id); if(!el)return;
+  el.className=`sbar ${type}`;
+  el.innerHTML=type==='load'?`<div class="spin"></div><span>${msg}</span>`:`<span>${msg}</span>`;
+}
+function badge(id,text) {
+  const b=document.getElementById(id); if(!b)return;
+  b.textContent=text; b.classList.add('on');
+}
+function copyTxt(t) { navigator.clipboard.writeText(t); }
+
+// ─── STUDY GUIDE ──────────────────────────────────
+let sgCourses = [];
+let sgAllTests = [];
+let sgSelectedCourse = null;
+let sgSelectedQuiz = null;
+let sgGuideText = '';
+
+async function loadSgCourses() {
+  const testList = document.getElementById('sgTestList');
+  if (!testList) return;
+  try {
+    const r = await fetch('/api/upcoming-tests');
+    if (!r.ok) throw new Error(`status ${r.status}`);
+    const tests = await r.json();
+    sgAllTests = Array.isArray(tests) ? tests : [];
+    renderTestCards(sgAllTests, testList);
+  } catch(e) {
+    testList.innerHTML = `<div style="color:var(--red);font-size:0.82rem;">⚠️ Can't reach server — make sure it's running, then use <b>http://127.0.0.1:3000</b></div>`;
+  }
+}
+
+function renderTestCards(tests, container) {
+  if (!tests.length) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;padding:10px 0;">No upcoming quizzes or tests found on Canvas yet.</div>';
+    return;
+  }
+  const now = new Date();
+  container.innerHTML = `<div class="sg-test-grid">${tests.map((item, i) => {
+    const due = new Date(item.due);
+    const daysLeft = Math.ceil((due - now) / 86400000);
+    const dueStr = due.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+    const urgency = daysLeft <= 1 ? 'urgent' : daysLeft <= 4 ? 'soon' : 'upcoming';
+    const typeLabel = item.isDemo ? 'demo' : (item.type === 'quiz' ? 'quiz' : /test|exam/i.test(item.title) ? 'test' : item.type);
+    return `<button class="sg-test-card ${urgency}${item.isDemo?' sg-demo-card':''}" onclick="selectSgTest(${i},this)">
+      <div class="sg-test-type ${typeLabel}">${typeLabel}</div>
+      <div class="sg-test-title">${item.title}</div>
+      <div class="sg-test-course">📚 ${item.course}</div>
+      <div class="sg-test-due ${urgency}">📅 ${dueStr} · ${daysLeft}d away</div>
+    </button>`;
+  }).join('')}</div>`;
+}
+
+function selectSgTest(i, el) {
+  const item = sgAllTests[i];
+  if (!item) return;
+
+  document.querySelectorAll('.sg-test-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  sgSelectedQuiz = item;
+  sgSelectedCourse = { id: item.courseId, name: item.course };
+
+  // Update tutor greeting
+  const sub = document.getElementById('tutorSubtitle');
+  if (sub) sub.textContent = item.isDemo ? 'Demo mode — ask me anything!' : `Studying: ${item.title}`;
+  addTutorMsg('ai', `Got it! I'll build you a study guide for **"${item.title}"** in ${item.course}. Hit the button below to generate it, or ask me a question right now!`);
+
+  // Show generate button
+  const genRow = document.getElementById('sgGenerateRow');
+  genRow.style.display = 'block';
+  genRow.innerHTML = `
+    <div class="sg-selected-bar">
+      <div style="min-width:0;">
+        <div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎯 ${item.title}</div>
+        <div style="font-size:0.72rem;color:var(--muted);">${item.course}</div>
+      </div>
+      <button class="btn btn-green" style="white-space:nowrap;flex-shrink:0;" onclick="generateStudyGuide()">🧠 Build Guide</button>
+    </div>`;
+}
+
+function sgReset() {
+  sgSelectedCourse = null;
+  sgSelectedQuiz = null;
+  sgGuideText = '';
+  tutorHistory = [];
+  document.getElementById('sgOutput').style.display = 'none';
+  document.getElementById('sgGenerateRow').style.display = 'none';
+  document.getElementById('sgBar').style.display = 'none';
+  document.getElementById('tutorChips').style.display = 'none';
+  document.getElementById('tutorSubtitle').textContent = 'Pick a quiz to get started';
+  document.getElementById('tutorMessages').innerHTML = `<div class="tutor-msg tutor-ai"><div class="tutor-bubble">👋 Hey Devan! Pick any quiz or test on the left and I'll build you a study guide, then help you study it.</div></div>`;
+  document.querySelectorAll('.sg-test-card').forEach(b => b.classList.remove('selected'));
+}
+
+async function generateStudyGuide() {
+  if (!sgSelectedCourse) { alert('Please pick a quiz/test or course first.'); return; }
+
+  const bar = document.getElementById('sgBar');
+  const out = document.getElementById('sgOutput');
+  bar.style.display = 'block';
+  bar.className = 'sbar load';
+  const focusTopic = (document.getElementById('sgFocus').value || '').trim();
+  const label = sgSelectedQuiz ? `"${sgSelectedQuiz.title}"` : (focusTopic || sgSelectedCourse.name);
+  bar.innerHTML = `<div class="spin"></div><span>Scanning Canvas for ${label}… this takes 20–40 seconds</span>`;
+  out.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/study-guide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        courseId: sgSelectedCourse.id,
+        courseName: sgSelectedCourse.name,
+        focusTopic: sgSelectedQuiz?.title || focusTopic,
+        quizTitle: sgSelectedQuiz?.title || '',
+        quizDescription: sgSelectedQuiz?.description || '',
+        quizDue: sgSelectedQuiz?.due || ''
+      })
+    });
+
+    let data;
+    const contentType = r.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const txt = await r.text();
+      throw new Error(`Server not responding correctly (status ${r.status}). Restart the server, then open http://127.0.0.1:3000`);
+    }
+    data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    sgGuideText = data.guide;
+
+    // Reset tutor
+    tutorHistory = [];
+    const tutorMsgs = document.getElementById('tutorMessages');
+    const ctx = sgSelectedQuiz
+      ? `your <strong>${sgSelectedCourse.name}</strong> ${sgSelectedQuiz.type} — <strong>"${sgSelectedQuiz.title}"</strong>`
+      : `all your <strong>${sgSelectedCourse.name}</strong> material`;
+    if (tutorMsgs) tutorMsgs.innerHTML = `<div class="tutor-msg tutor-ai"><div class="tutor-bubble">I've read through ${ctx}! Ask me anything — more practice, explanations, flashcards, memory tricks. 👋</div></div>`;
+
+    bar.className = 'sbar ok';
+    bar.innerHTML = `<span>✅ Scanned ${data.sections} sections — study guide ready</span>`;
+
+    document.getElementById('sgContent').innerHTML = renderMarkdown(data.guide);
+    document.getElementById('sgMeta').innerHTML = [
+      `<span class="sg-meta-chip">📚 ${sgSelectedCourse.name}</span>`,
+      sgSelectedQuiz ? `<span class="sg-meta-chip" style="background:rgba(245,158,11,0.15);color:var(--warn);">🎯 ${sgSelectedQuiz.title}</span>` : '',
+      `<span class="sg-meta-chip">📄 ${data.sections} sources</span>`
+    ].join('');
+    out.style.display = 'block';
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Show quick-action chips now that guide is ready
+    document.getElementById('tutorChips').style.display = 'flex';
+    document.getElementById('tutorChips').style.flexDirection = 'column';
+  } catch(e) {
+    bar.className = 'sbar err';
+    bar.innerHTML = `<span>❌ ${e.message}</span>`;
+  }
+}
+
+// ─── TAB SWITCHER ─────────────────────────────────
+let tgCourses = [];
+let tgSelectedCourse = null;
+
+function sgSwitchTab(n) {
+  document.getElementById('sgTabContent1').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('sgTabContent2').style.display = n === 2 ? 'block' : 'none';
+  document.getElementById('sgTab1').classList.toggle('active', n === 1);
+  document.getElementById('sgTab2').classList.toggle('active', n === 2);
+  if (n === 2 && !tgCourses.length) loadTgCourses();
+}
+
+async function loadTgCourses() {
+  const picker = document.getElementById('tgCoursePicker');
+  try {
+    const r = await fetch('/api/courses');
+    if (!r.ok) throw new Error('server error');
+    const courses = await r.json();
+    tgCourses = Array.isArray(courses)
+      ? courses.filter(c => c.name && !/Bulletin|Counseling|Investigates|SOMS$/i.test(c.name)).slice(0, 15)
+      : [];
+    picker.innerHTML = tgCourses.map((c, i) =>
+      `<button class="sg-course-btn" onclick="selectTgCourse(${i},this)">${c.name}</button>`
+    ).join('') || '<span style="color:var(--muted);font-size:0.82rem;">Connect Canvas to see your classes.</span>';
+  } catch(e) {
+    picker.innerHTML = '<span style="color:var(--red);font-size:0.82rem;">⚠️ Cannot reach server — make sure it\'s running.</span>';
+  }
+}
+
+function selectTgCourse(i, el) {
+  tgSelectedCourse = tgCourses[i];
+  document.querySelectorAll('#tgCoursePicker .sg-course-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Show topic input
+  document.getElementById('tgTopicRow').style.display = 'block';
+  document.getElementById('tgTopic').focus();
+
+  // Show topic suggestions based on course name
+  const suggestions = topicSuggestionsFor(tgSelectedCourse.name);
+  document.getElementById('tgSuggestions').innerHTML = suggestions.map(s =>
+    `<button class="tg-suggest" onclick="document.getElementById('tgTopic').value='${s}';generateTopicGuide()">${s}</button>`
+  ).join('');
+
+  // Update tutor
+  document.getElementById('tutorSubtitle').textContent = tgSelectedCourse.name;
+  addTutorMsg('ai', `Great choice! I'll search **${tgSelectedCourse.name}** for whatever topic you type. What do you want to study?`);
+}
+
+function topicSuggestionsFor(courseName) {
+  const name = courseName.toLowerCase();
+  if (/sci/i.test(name))     return ['Cells & Cell Division','Ecosystems','Photosynthesis','Newton\'s Laws','Genetics'];
+  if (/math|geom|alg|calc/i.test(name)) return ['Quadratic Equations','Triangles & Angles','Linear Equations','Probability','Area & Volume'];
+  if (/hist|soc|stud/i.test(name)) return ['American Revolution','Civil War','World War II','Constitution','Ancient Civilizations'];
+  if (/eng|lang|lit/i.test(name)) return ['Essay Writing','Literary Devices','Grammar Rules','Figurative Language','Story Analysis'];
+  if (/span|french|lang/i.test(name)) return ['Verb Conjugation','Vocabulary','Past Tense','Pronouns','Commands'];
+  return ['Key Vocabulary','Unit 1 Review','Main Concepts','Formulas & Rules','Important Dates'];
+}
+
+function tgReset() {
+  tgSelectedCourse = null;
+  document.getElementById('tgOutput').style.display = 'none';
+  document.getElementById('tgBar').style.display = 'none';
+  document.getElementById('tgTopicRow').style.display = 'none';
+  document.getElementById('tgTopic').value = '';
+  document.querySelectorAll('#tgCoursePicker .sg-course-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('tutorChips').style.display = 'none';
+}
+
+async function generateTopicGuide() {
+  if (!tgSelectedCourse) { alert('Pick a class first.'); return; }
+  const topic = document.getElementById('tgTopic').value.trim();
+  if (!topic) { document.getElementById('tgTopic').focus(); return; }
+
+  const bar = document.getElementById('tgBar');
+  const out = document.getElementById('tgOutput');
+  bar.style.display = 'block';
+  bar.className = 'sbar load';
+  bar.innerHTML = `<div class="spin"></div><span>Scanning ${tgSelectedCourse.name} for "${topic}"… 20-40 seconds</span>`;
+  out.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/topic-guide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId: tgSelectedCourse.id, courseName: tgSelectedCourse.name, topic })
+    });
+    const contentType = r.headers.get('content-type') || '';
+    if (!contentType.includes('json')) throw new Error(`Server error (${r.status}) — restart the server`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    sgGuideText = data.guide;
+
+    bar.className = 'sbar ok';
+    bar.innerHTML = `<span>✅ Found ${data.sections} matching sections — guide ready</span>`;
+
+    document.getElementById('tgContent').innerHTML = renderMarkdown(data.guide);
+    document.getElementById('tgMeta').innerHTML = [
+      `<span class="sg-meta-chip">📚 ${tgSelectedCourse.name}</span>`,
+      `<span class="sg-meta-chip">🔍 ${topic}</span>`,
+      `<span class="sg-meta-chip">📄 ${data.sections} sources</span>`
+    ].join('');
+    out.style.display = 'block';
+
+    // Update tutor
+    tutorHistory = [];
+    const tutorMsgs = document.getElementById('tutorMessages');
+    if (tutorMsgs) tutorMsgs.innerHTML = `<div class="tutor-msg tutor-ai"><div class="tutor-bubble">I've read through your teacher's notes on <strong>"${topic}"</strong> in ${tgSelectedCourse.name}! Ask me anything — more practice, step-by-step help, flashcards, memory tricks. 👋</div></div>`;
+    document.getElementById('tutorSubtitle').textContent = topic + ' — ' + tgSelectedCourse.name;
+    document.getElementById('tutorChips').style.display = 'flex';
+    document.getElementById('tutorChips').style.flexDirection = 'column';
+
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    bar.className = 'sbar err';
+    bar.innerHTML = `<span>❌ ${e.message}</span>`;
+  }
+}
+
+function renderMarkdown(md) {
+  return md
+    .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^---$/gm, '<hr/>')
+    .replace(/^\d+\. (.+)$/gm, '<li style="list-style:decimal">$1</li>')
+    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hH\d]|<ul|<ol|<li|<hr|<blockquote|<\/p|<p)(.+)$/gm, '<p>$1</p>')
+    .replace(/<p><\/p>/g, '');
+}
+
+function copyStudyGuide() {
+  navigator.clipboard.writeText(sgGuideText);
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✅ Copied!';
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+function printStudyGuide() {
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Study Guide — ${sgSelectedCourse?.name||''}</title>
+  <style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#111;}
+  h1,h2{color:#1a1a2e;}h3{color:#333;border-left:3px solid #2ecc71;padding-left:10px;}
+  strong{font-weight:700;}code{background:#f0f0f0;padding:1px 5px;border-radius:3px;font-size:0.9em;}
+  ul{padding-left:20px;}li{margin-bottom:4px;}hr{border:none;border-top:1px solid #ddd;margin:20px 0;}
+  blockquote{border-left:3px solid #9b59b6;padding:8px 14px;background:#f9f5ff;margin:10px 0;font-style:italic;}
+  @media print{body{margin:20px;}}</style></head><body>
+  ${renderMarkdown(sgGuideText)}</body></html>`);
+  w.document.close();
+  w.print();
+}
+
+// Load courses when study guide tab is opened
+const _origGo = window.go;
+
+// ─── AI TUTOR ─────────────────────────────────────
+let tutorHistory = [];
+
+function tutorAsk(msg) {
+  document.getElementById('tutorInput').value = msg;
+  tutorSend();
+}
+
+async function tutorSend() {
+  const input = document.getElementById('tutorInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  // Add user bubble
+  addTutorMsg('user', msg);
+  tutorHistory.push({ role: 'user', content: msg });
+
+  // Thinking indicator
+  const thinkId = 'think_' + Date.now();
+  const msgs = document.getElementById('tutorMessages');
+  msgs.insertAdjacentHTML('beforeend', `
+    <div class="tutor-msg tutor-ai" id="${thinkId}">
+      <div class="tutor-bubble" style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.15);">
+        <div class="tutor-thinking">
+          <div class="tutor-dot"></div><div class="tutor-dot"></div><div class="tutor-dot"></div>
+        </div>
+      </div>
+    </div>`);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const r = await fetch('/api/study-tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        guideContext: sgGuideText,
+        courseName: sgSelectedCourse?.name || '',
+        history: tutorHistory.slice(0, -1) // send history excluding last (already in messages)
+      })
+    });
+    const data = await r.json();
+    document.getElementById(thinkId)?.remove();
+
+    const reply = data.reply || data.error || 'Something went wrong.';
+    addTutorMsg('ai', reply);
+    tutorHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    document.getElementById(thinkId)?.remove();
+    addTutorMsg('ai', '❌ Error reaching the server. Make sure it\'s running.');
+  }
+}
+
+function addTutorMsg(role, text) {
+  const msgs = document.getElementById('tutorMessages');
+  if (!msgs) return;
+  const isAI = role === 'ai';
+  // Render simple markdown in tutor replies
+  const html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;font-size:0.78rem;">$1</code>')
+    .replace(/^#{1,3} (.+)$/gm, '<strong style="font-size:0.85rem;display:block;margin-top:8px;">$1</strong>')
+    .replace(/^[-•] (.+)$/gm, '<div style="padding-left:12px;margin:2px 0;">• $1</div>')
+    .replace(/^\d+\. (.+)$/gm, (m, p1, offset, str) => {
+      const num = str.slice(0, offset).match(/^\d+\./gm)?.length + 1 || 1;
+      return `<div style="padding-left:12px;margin:2px 0;">${num}. ${p1}</div>`;
+    })
+    .replace(/\n/g, '<br>');
+
+  msgs.insertAdjacentHTML('beforeend', `
+    <div class="tutor-msg ${isAI ? 'tutor-ai' : 'tutor-user'}">
+      <div class="tutor-bubble">${html}</div>
+    </div>`);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ─── VOICE INPUT ──────────────────────────────────
+let voiceParsedData = null;
+let voiceRecognition = null;
+let voiceListening = false;
+
+function toggleVoice() {
+  if (voiceListening) {
+    voiceListening = false;
+    if (voiceRecognition) voiceRecognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice input is not supported in this browser. Try Chrome or Edge.');
+    return;
+  }
+
+  resetVoice();
+
+  voiceRecognition = new SpeechRecognition();
+  voiceRecognition.lang = 'en-US';
+  voiceRecognition.interimResults = true;
+  voiceRecognition.maxAlternatives = 1;
+  voiceRecognition.continuous = false;
+
+  const micBtn = document.getElementById('micBtn');
+  const transcript = document.getElementById('voiceTranscript');
+
+  micBtn.classList.remove('idle');
+  micBtn.classList.add('listening');
+  micBtn.textContent = '🔴';
+  transcript.style.display = 'block';
+  transcript.textContent = '🎙️ Listening…';
+  voiceListening = true;
+
+  voiceRecognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        handleVoiceResult(t.trim());
+      } else {
+        interim = t;
+      }
+    }
+    if (interim) transcript.textContent = '🎙️ ' + interim;
+  };
+
+  voiceRecognition.onerror = (e) => {
+    transcript.textContent = '❌ Error: ' + e.error + '. Try again.';
+    resetMicBtn();
+  };
+
+  voiceRecognition.onend = () => {
+    voiceListening = false;
+    if (micBtn.classList.contains('listening')) resetMicBtn();
+  };
+
+  voiceRecognition.start();
+}
+
+function resetMicBtn() {
+  const micBtn = document.getElementById('micBtn');
+  micBtn.classList.remove('listening');
+  micBtn.classList.add('idle');
+  micBtn.textContent = '🎤';
+  voiceListening = false;
+}
+
+async function handleVoiceResult(text) {
+  const transcript = document.getElementById('voiceTranscript');
+  const parsed = document.getElementById('voiceParsed');
+
+  resetMicBtn();
+  transcript.textContent = '📝 "' + text + '"';
+  transcript.style.display = 'block';
+
+  document.getElementById('vpRows').innerHTML = `<div class="ai-load"><div class="spin"></div> Organizing with AI…</div>`;
+  parsed.style.display = 'block';
+
+  try {
+    const r = await fetch('/api/parse-voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: text })
+    });
+    const data = await r.json();
+    voiceParsedData = data;
+
+    const fmtDueLocal = (iso) => {
+      if (!iso) return 'Not set';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) +
+             ' at ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+    };
+
+    document.getElementById('vpRows').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div class="fg"><label style="font-size:0.72rem;color:var(--muted);">TITLE</label>
+          <div style="font-weight:600;color:var(--text);font-size:0.9rem;">${data.title || '—'}</div></div>
+        <div class="fg"><label style="font-size:0.72rem;color:var(--muted);">COURSE</label>
+          <div style="font-weight:600;color:var(--text);font-size:0.9rem;">${data.course || '—'}</div></div>
+        <div class="fg"><label style="font-size:0.72rem;color:var(--muted);">TYPE</label>
+          <div style="font-weight:600;color:var(--text);font-size:0.9rem;">${data.type || 'homework'}</div></div>
+        <div class="fg"><label style="font-size:0.72rem;color:var(--muted);">DUE</label>
+          <div style="font-weight:700;color:#f87171;font-size:0.9rem;">${fmtDueLocal(data.due)}</div></div>
+        ${data.points ? `<div class="fg"><label style="font-size:0.72rem;color:var(--muted);">POINTS</label>
+          <div style="font-weight:600;color:var(--text);font-size:0.9rem;">${data.points} pts</div></div>` : ''}
+        ${data.notes ? `<div class="fg" style="grid-column:1/-1"><label style="font-size:0.72rem;color:var(--muted);">NOTES</label>
+          <div style="font-size:0.85rem;color:var(--muted);">${data.notes}</div></div>` : ''}
+      </div>`;
+  } catch (err) {
+    document.getElementById('vpRows').innerHTML = `<div style="color:var(--red);font-size:0.85rem;">⚠️ Could not parse. Try again or fill manually.</div>`;
+    voiceParsedData = null;
+  }
+}
+
+function confirmVoice() {
+  if (!voiceParsedData) return;
+  const d = voiceParsedData;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+
+  set('mTitle', d.title || '');
+  set('mCourse', d.course || '');
+
+  const typeEl = document.getElementById('mType');
+  if (typeEl && d.type) {
+    const opts = [...typeEl.options].map(o => o.value);
+    if (opts.includes(d.type)) typeEl.value = d.type;
+    else typeEl.value = 'homework';
+  }
+
+  if (d.due) {
+    // datetime-local needs format YYYY-MM-DDTHH:MM
+    const iso = new Date(d.due).toISOString().slice(0, 16);
+    set('mDue', iso);
+  }
+
+  if (d.points) set('mPoints', d.points);
+  if (d.notes) set('mNotes', d.notes);
+
+  resetVoice();
+
+  // Scroll to the form
+  document.getElementById('mTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('mTitle').focus();
+}
+
+function resetVoice() {
+  voiceParsedData = null;
+  voiceListening = false;
+  if (voiceRecognition) { try { voiceRecognition.stop(); } catch(e){} voiceRecognition = null; }
+
+  resetMicBtn();
+
+  const transcript = document.getElementById('voiceTranscript');
+  const parsed = document.getElementById('voiceParsed');
+  const vpRows = document.getElementById('vpRows');
+
+  if (transcript) { transcript.style.display = 'none'; transcript.textContent = ''; }
+  if (parsed) parsed.style.display = 'none';
+  if (vpRows) vpRows.innerHTML = '';
+}
+</script>
+</body>
+</html>

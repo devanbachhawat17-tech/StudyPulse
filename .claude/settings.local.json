@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(kill 1441)",
+      "Bash(kill 2183)",
+      "Bash(npm install:*)",
+      "Bash(curl -s -X POST http://localhost:3000/api/email-config -H 'Content-Type: application/json' -d '{\"emailTo\":\"devanbachhawat17@gmail.com\",\"studentName\":\"Devan\",\"gmailUser\":\"devanbachhawat17@gmail.com\",\"gmailAppPass\":\"hvxnlizptycdazgz\"}')",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(curl -s http://localhost:3000/api/config/status)",
+      "Bash(curl -s -X POST http://localhost:3000/api/sms-brevo-config -H 'Content-Type: application/json' -d '{\"phoneNumber\":\"8622208909\",\"brevoUser\":\"a95e75001@smtp-brevo.com\",\"brevoSmtpKey\":\"xsmtpsib-e8244b6ef9631e3e5979d2a1e1476136381c861bbec97fc76c4a8d18aaa77f8c-85WnOmRsPSFGLeia\",\"studentName\":\"Devan\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/test-sms)",
+      "Bash(curl -s -X POST http://localhost:3000/api/sms-config -H 'Content-Type: application/json' -d '{\"studentName\":\"Devan\",\"phoneNumber\":\"8622208909\",\"gmailUser\":\"x\",\"gmailAppPass\":\"x\"}')",
+      "Bash(node \"/Users/dbachhawat/Downloads/studypulse 8/server.js\")",
+      "Bash(open \"http://127.0.0.1:3000\")",
+      "Bash(curl -s -X POST http://127.0.0.1:3000/api/study-guide -H 'Content-Type: application/json' -d '{\"courseId\":\"23163\",\"courseName\":\"Gen Sci-Gr 8\",\"focusTopic\":\"Force and Motion\",\"quizTitle\":\"\",\"quizDescription\":\"\",\"quizDue\":\"\"}' -o /tmp/sg_response.json)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}
