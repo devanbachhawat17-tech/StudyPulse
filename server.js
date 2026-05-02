@@ -59,6 +59,15 @@ let CARRIER_GATEWAY   = process.env.CARRIER_GATEWAY || 'tmomail.net';
 // Cached Canvas items for scheduled digests
 let cachedCanvasItems = [];
 
+// ─── SET ANTHROPIC KEY ────────────────────────────
+app.post('/api/anthropic-config', (req, res) => {
+  const { apiKey } = req.body;
+  if (!apiKey) return res.status(400).json({ error: 'Missing apiKey' });
+  ANTHROPIC_API_KEY = apiKey.trim();
+  saveConfig();
+  res.json({ success: true });
+});
+
 // ─── SET CREDENTIALS (called from UI) ─────────────
 app.post('/api/config', (req, res) => {
   const { domain, token } = req.body;
