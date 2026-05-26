@@ -55,7 +55,7 @@ let RESEND_API_KEY  = process.env.RESEND_API_KEY  || 're_d4MQZmWx_MATzXywvbwqsQL
 let BREVO_USER      = process.env.BREVO_USER      || 'a95e75001@smtp-brevo.com';
 let BREVO_SMTP_KEY  = process.env.BREVO_SMTP_KEY  || 'xsmtpsib-e8244b6ef9631e3e5979d2a1e1476136381c861bbec97fc76c4a8d18aaa77f8c-85WnOmRsPSFGLeia';
 let NTFY_TOPIC        = process.env.NTFY_TOPIC      || 'studypulse-devan';
-let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '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';
+let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''; // loaded from config.json at startup
 // SMS carrier gateway — change if not on T-Mobile:
 //   T-Mobile:  tmomail.net
 //   Verizon:   vtext.com
