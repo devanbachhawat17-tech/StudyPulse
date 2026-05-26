@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="StudyPulse"/>
+<meta name="theme-color" content="#4070ff"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icons/icon-192.png"/>
 <title>StudyPulse</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
 <style>
@@ -420,9 +426,84 @@ select option{background:var(--s2);}
   .stats-row{grid-template-columns:1fr 1fr;}
   .home-hero{flex-direction:column;text-align:center;}
 }
+
+/* ── STUDY GUIDE SEARCH HERO ─────────────────── */
+.sg-search-hero{
+  background:linear-gradient(135deg,rgba(64,112,255,0.08),rgba(124,58,237,0.06));
+  border:1px solid var(--border);border-radius:16px;
+  padding:20px 20px 16px;margin-top:4px;
+}
+.sg-search-row{display:flex;gap:10px;align-items:center;}
+.sg-search-input{
+  flex:1;background:var(--bg);border:2px solid var(--blue);
+  border-radius:12px;padding:13px 18px;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.sg-search-input:focus{border-color:#6090ff;box-shadow:0 0 0 3px rgba(64,112,255,0.18);}
+.sg-search-input::placeholder{color:var(--muted);}
+.sg-search-btn{
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  color:#fff;border:none;border-radius:12px;padding:13px 22px;
+  font-size:0.95rem;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:opacity 0.15s;
+}
+.sg-search-btn:hover{opacity:0.88;}
+.sg-topic-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+.sg-chip{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:20px;padding:5px 13px;font-size:0.77rem;
+  color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.sg-chip:hover{border-color:var(--blue);color:var(--text);background:rgba(64,112,255,0.08);}
+
+/* ── PWA INSTALL BANNER ───────────────────────── */
+#installBanner{
+  position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:linear-gradient(135deg,#1a2236,#0e1220);
+  border-top:1px solid var(--blue);
+  padding:14px 18px;display:flex;align-items:center;gap:14px;
+  box-shadow:0 -4px 30px rgba(64,112,255,0.18);
+  transform:translateY(100%);transition:transform 0.35s ease;
+}
+#installBanner.show{transform:translateY(0);}
+#installBanner .ib-icon{font-size:1.8rem;flex-shrink:0;}
+#installBanner .ib-text{flex:1;}
+#installBanner .ib-title{font-weight:700;font-size:0.95rem;color:var(--text);}
+#installBanner .ib-sub{font-size:0.78rem;color:var(--muted);margin-top:2px;line-height:1.4;}
+#installBanner .ib-btns{display:flex;gap:8px;flex-shrink:0;}
+.ib-btn-install{background:var(--blue);color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:0.84rem;font-weight:600;cursor:pointer;}
+.ib-btn-dismiss{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-size:0.84rem;cursor:pointer;}
+
+/* ── NOTIFICATION PERMISSION BUTTON ──────────── */
+#notifBtn{
+  display:none;position:fixed;top:14px;right:16px;z-index:9998;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  color:#fff;border:none;border-radius:10px;padding:9px 16px;
+  font-size:0.8rem;font-weight:600;cursor:pointer;
+  box-shadow:0 4px 20px rgba(64,112,255,0.35);
+  animation:pulse-notif 2s ease-in-out infinite;
+}
+@keyframes pulse-notif{0%,100%{box-shadow:0 4px 20px rgba(64,112,255,0.35);}50%{box-shadow:0 4px 30px rgba(64,112,255,0.65);}}
 </style>
 </head>
 <body>
+
+<!-- ── PWA INSTALL BANNER ───────────────────────── -->
+<div id="installBanner">
+  <div class="ib-icon">📲</div>
+  <div class="ib-text">
+    <div class="ib-title">Add StudyPulse to your Home Screen</div>
+    <div class="ib-sub" id="ib-sub-text">Get real push notifications like Duolingo — even when the browser is closed.</div>
+  </div>
+  <div class="ib-btns">
+    <button class="ib-btn-install" id="ib-install-btn">Install</button>
+    <button class="ib-btn-dismiss" onclick="dismissBanner()">✕</button>
+  </div>
+</div>
+
+<!-- ── NOTIFICATION ENABLE BUTTON ──────────────── -->
+<button id="notifBtn" onclick="enableNotifications()">🔔 Enable Notifications</button>
 
 <!-- ═══════════════════════════════════════════════
      SURVEY OVERLAY (shown first time only)
@@ -823,18 +904,53 @@ select option{background:var(--s2);}
     <div class="page" id="page-studyguide">
       <div class="sg-main-layout">
 
-        <!-- LEFT: tabs + content -->
+        <!-- LEFT: search + content -->
         <div class="sg-panel-left">
 
-          <!-- Tab switcher -->
-          <div class="sg-tabs">
-            <button class="sg-tab active" id="sgTab1" onclick="sgSwitchTab(1)">📋 Quizzes &amp; Tests</button>
-            <button class="sg-tab" id="sgTab2" onclick="sgSwitchTab(2)">🔍 Search by Topic</button>
+          <!-- ── BIG SEARCH BAR (always visible at top) ── -->
+          <div class="sg-search-hero" id="sgSearchHero">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;margin-bottom:4px;">🧠 Study Guide Generator</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:14px;">Type any topic — get a full study guide in seconds</div>
+            <div class="sg-search-row">
+              <input type="text" id="sgMainSearch" class="sg-search-input"
+                placeholder="Area &amp; Circumference, Photosynthesis, Civil War, Algebra…"
+                onkeydown="if(event.key==='Enter')sgMainGenerate()"
+                autofocus/>
+              <button class="sg-search-btn" onclick="sgMainGenerate()">Generate ⚡</button>
+            </div>
+            <!-- popular topic chips -->
+            <div class="sg-topic-chips">
+              <button class="sg-chip" onclick="sgChipSearch('Area &amp; Circumference')">📐 Area &amp; Circumference</button>
+              <button class="sg-chip" onclick="sgChipSearch('Fractions &amp; Decimals')">🔢 Fractions</button>
+              <button class="sg-chip" onclick="sgChipSearch('Photosynthesis')">🌿 Photosynthesis</button>
+              <button class="sg-chip" onclick="sgChipSearch('American Revolution')">🗽 American Revolution</button>
+              <button class="sg-chip" onclick="sgChipSearch('Algebra &amp; Equations')">📊 Algebra</button>
+              <button class="sg-chip" onclick="sgChipSearch('Chemical Reactions')">⚗️ Chemical Reactions</button>
+              <button class="sg-chip" onclick="sgChipSearch('Parts of Speech')">📝 Parts of Speech</button>
+              <button class="sg-chip" onclick="sgChipSearch('World War II')">🌍 WW2</button>
+            </div>
           </div>
 
-          <!-- TAB 1: Quiz/test picker -->
-          <div id="sgTabContent1">
-            <div class="sg-step-label" style="margin-top:14px;">Your Upcoming Quizzes &amp; Tests</div>
+          <!-- ── STATUS BAR ── -->
+          <div id="sgMainBar" style="display:none;margin-top:12px;"></div>
+
+          <!-- ── GUIDE OUTPUT ── -->
+          <div id="sgMainOutput" style="display:none;margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+              <div class="sg-meta" id="sgMainMeta" style="flex:1;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="copyTxt(sgGuideText)">📋 Copy</button>
+              <button class="btn btn-ghost btn-sm" onclick="printStudyGuide()">🖨️ Print</button>
+              <button class="btn btn-ghost btn-sm" onclick="sgMainReset()">← New Topic</button>
+            </div>
+            <div class="sg-output" id="sgMainContent"></div>
+          </div>
+
+          <!-- ── DIVIDER ── -->
+          <div id="sgDivider" style="border-top:1px solid var(--border);margin:22px 0;"></div>
+
+          <!-- ── CANVAS QUIZZES (below search) ── -->
+          <div id="sgCanvasSection">
+            <div class="sg-step-label">📋 Or pick an upcoming quiz from Canvas</div>
             <div id="sgTestList" style="margin-top:8px;">
               <div class="ai-load"><div class="spin"></div><span>Loading from Canvas…</span></div>
             </div>
@@ -851,32 +967,13 @@ select option{background:var(--s2);}
             </div>
           </div>
 
-          <!-- TAB 2: Teacher + topic search -->
-          <div id="sgTabContent2" style="display:none;">
-            <div class="sg-step-label" style="margin-top:14px;">1. Pick Your Class</div>
-            <div class="sg-course-picker" id="tgCoursePicker" style="margin-top:8px;">
-              <div class="ai-load"><div class="spin"></div><span>Loading classes…</span></div>
-            </div>
-
-            <div id="tgTopicRow" style="display:none;margin-top:16px;">
-              <div class="sg-step-label">2. What Topic Do You Want to Study?</div>
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <input type="text" id="tgTopic" placeholder="e.g. Photosynthesis, World War II, Quadratic equations…" style="flex:1;" onkeydown="if(event.key==='Enter')generateTopicGuide()"/>
-                <button class="btn btn-green" onclick="generateTopicGuide()">🔍 Search</button>
-              </div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;" id="tgSuggestions"></div>
-            </div>
-
-            <div id="tgBar" style="display:none;margin-top:12px;"></div>
-            <div id="tgOutput" style="display:none;margin-top:16px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-                <div class="sg-meta" id="tgMeta" style="flex:1;"></div>
-                <button class="btn btn-ghost btn-sm" onclick="copyTxt(sgGuideText)">📋 Copy</button>
-                <button class="btn btn-ghost btn-sm" onclick="printStudyGuide()">🖨️ Print</button>
-                <button class="btn btn-ghost btn-sm" onclick="tgReset()">← Back</button>
-              </div>
-              <div class="sg-output" id="tgContent"></div>
-            </div>
+          <!-- hidden inputs kept for compatibility -->
+          <div style="display:none;">
+            <input id="tgTopicQuick"/><input id="tgTopic"/>
+            <div id="tgBar"></div><div id="tgOutput"><div id="tgMeta"></div><div id="tgContent"></div></div>
+            <div id="tgCoursePicker"></div><div id="tgTopicRow"></div><div id="tgSuggestions"></div>
+            <div id="sgTabContent1"></div><div id="sgTabContent2"></div>
+            <button id="sgTab1"></button><button id="sgTab2"></button>
           </div>
 
         </div>
@@ -1154,18 +1251,75 @@ function toggle(el, group) {
   surveyData[group] = vals;
 }
 function surveyNext() {
+  // ── Validation — each step requires an answer ──
   if (surveyStep === 1) {
     const name = document.getElementById('surveyName').value.trim();
-    if (name) { surveyData.name = name; document.getElementById('emailName').value = name; }
+    if (!name) {
+      document.getElementById('surveyName').style.border = '2px solid var(--red)';
+      document.getElementById('surveyName').placeholder = '⚠️ Please enter your name';
+      document.getElementById('surveyName').focus();
+      return;
+    }
+    document.getElementById('surveyName').style.border = '';
+    if (!surveyData.grade) {
+      showSurveyError('Please pick your grade to continue.');
+      return;
+    }
+    surveyData.name = name;
+    document.getElementById('emailName').value = name;
+  }
+  if (surveyStep === 2) {
+    if (!surveyData.times || surveyData.times.length === 0) {
+      showSurveyError('Pick at least one reminder time to continue.');
+      return;
+    }
+    if (!surveyData.weekly) {
+      showSurveyError('Choose whether you want a weekly summary email.');
+      return;
+    }
+  }
+  if (surveyStep === 3) {
+    if (!surveyData.style) {
+      showSurveyError('Pick your study style so we can personalize your reminders.');
+      return;
+    }
+    if (!surveyData.tone) {
+      showSurveyError('Choose your reminder tone to continue.');
+      return;
+    }
   }
   if (surveyStep === 4) {
     localStorage.setItem('sp_survey_done','1');
     localStorage.setItem('sp_survey_data', JSON.stringify(surveyData));
     document.getElementById('surveyOverlay').style.display = 'none';
+    // Save schedule preferences to server so cron jobs use them
+    fetch('/api/save-preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:    surveyData.name,
+        times:   surveyData.times,
+        weekly:  surveyData.weekly,
+        style:   surveyData.style,
+        tone:    surveyData.tone
+      })
+    }).catch(() => {});
     return;
   }
   surveyStep++;
   updateSurveyUI();
+}
+
+function showSurveyError(msg) {
+  let err = document.getElementById('surveyErr');
+  if (!err) {
+    err = document.createElement('div');
+    err.id = 'surveyErr';
+    err.style.cssText = 'background:rgba(239,68,68,0.12);border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:#f87171;margin-top:12px;';
+    document.querySelector('.survey-nav').insertAdjacentElement('beforebegin', err);
+  }
+  err.textContent = '⚠️ ' + msg;
+  setTimeout(() => { if (err) err.textContent = ''; }, 3000);
 }
 function surveyBack() {
   if (surveyStep <= 1) return;
@@ -1759,11 +1913,7 @@ let tgCourses = [];
 let tgSelectedCourse = null;
 
 function sgSwitchTab(n) {
-  document.getElementById('sgTabContent1').style.display = n === 1 ? 'block' : 'none';
-  document.getElementById('sgTabContent2').style.display = n === 2 ? 'block' : 'none';
-  document.getElementById('sgTab1').classList.toggle('active', n === 1);
-  document.getElementById('sgTab2').classList.toggle('active', n === 2);
-  if (n === 2 && !tgCourses.length) loadTgCourses();
+  // no-op — tabs replaced by unified search bar
 }
 
 async function loadTgCourses() {
@@ -1821,6 +1971,109 @@ function tgReset() {
   document.getElementById('tgTopic').value = '';
   document.querySelectorAll('#tgCoursePicker .sg-course-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('tutorChips').style.display = 'none';
+}
+
+// ── Main search bar generate ─────────────────────────────────────────────
+function sgChipSearch(topic) {
+  document.getElementById('sgMainSearch').value = topic;
+  sgMainGenerate();
+}
+
+async function sgMainGenerate() {
+  const topic = document.getElementById('sgMainSearch').value.trim();
+  if (!topic) { document.getElementById('sgMainSearch').focus(); return; }
+
+  const bar = document.getElementById('sgMainBar');
+  const out = document.getElementById('sgMainOutput');
+  bar.style.display = 'block';
+  bar.className = 'sbar load';
+  bar.innerHTML = `<div class="spin"></div><span>Building AI study guide for "<strong>${topic}</strong>"…</span>`;
+  out.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/topic-guide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId: 'demo', topic })
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    sgGuideText = data.guide;
+    bar.className = 'sbar ok';
+    bar.innerHTML = `<span>✅ Study guide ready${data.local ? '' : ' — powered by AI ✨'}</span>`;
+
+    document.getElementById('sgMainContent').innerHTML = renderMarkdown(data.guide);
+    document.getElementById('sgMainMeta').innerHTML = [
+      `<span class="sg-meta-chip">🧠 AI Guide</span>`,
+      `<span class="sg-meta-chip">📖 ${topic}</span>`
+    ].join('');
+    out.style.display = 'block';
+
+    // Update AI tutor panel
+    tutorHistory = [];
+    const tutorMsgs = document.getElementById('tutorMessages');
+    if (tutorMsgs) tutorMsgs.innerHTML = `<div class="tutor-msg tutor-ai"><div class="tutor-bubble">Study guide for <strong>"${topic}"</strong> is ready! 🎉 Ask me anything — more practice problems, step-by-step explanations, memory tricks, or flashcards. 👋</div></div>`;
+    document.getElementById('tutorSubtitle').textContent = topic;
+    document.getElementById('tutorChips').style.display = 'flex';
+    document.getElementById('tutorChips').style.flexDirection = 'column';
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    bar.className = 'sbar err';
+    bar.innerHTML = `<span>❌ ${e.message}</span>`;
+  }
+}
+
+function sgMainReset() {
+  document.getElementById('sgMainOutput').style.display = 'none';
+  document.getElementById('sgMainBar').style.display = 'none';
+  document.getElementById('sgMainSearch').value = '';
+  document.getElementById('sgMainSearch').focus();
+  sgGuideText = '';
+}
+
+async function generateQuickGuide() {
+  const topic = document.getElementById('tgTopicQuick').value.trim();
+  if (!topic) { document.getElementById('tgTopicQuick').focus(); return; }
+
+  const bar = document.getElementById('tgBar');
+  const out = document.getElementById('tgOutput');
+  bar.style.display = 'block';
+  bar.className = 'sbar load';
+  bar.innerHTML = `<div class="spin"></div><span>Building study guide for "${topic}"…</span>`;
+  out.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/topic-guide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId: 'demo', topic })
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    sgGuideText = data.guide;
+    bar.className = 'sbar ok';
+    bar.innerHTML = `<span>✅ Study guide ready${data.local ? ' (offline mode — AI unlocks when credits activate)' : ' — powered by AI ✨'}</span>`;
+
+    document.getElementById('tgContent').innerHTML = renderMarkdown(data.guide);
+    document.getElementById('tgMeta').innerHTML = [
+      `<span class="sg-meta-chip">⚡ Quick Guide</span>`,
+      `<span class="sg-meta-chip">📖 ${topic}</span>`
+    ].join('');
+    out.style.display = 'block';
+
+    tutorHistory = [];
+    const tutorMsgs = document.getElementById('tutorMessages');
+    if (tutorMsgs) tutorMsgs.innerHTML = `<div class="tutor-msg tutor-ai"><div class="tutor-bubble">I built your study guide for <strong>"${topic}"</strong>! 📐 Ask me anything — more practice problems, step-by-step explanations, flashcards, or memory tricks. 👋</div></div>`;
+    document.getElementById('tutorSubtitle').textContent = topic;
+    document.getElementById('tutorChips').style.display = 'flex';
+    document.getElementById('tutorChips').style.flexDirection = 'column';
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    bar.className = 'sbar err';
+    bar.innerHTML = `<span>❌ ${e.message}</span>`;
+  }
 }
 
 async function generateTopicGuide() {
@@ -2161,6 +2414,146 @@ function resetVoice() {
   if (parsed) parsed.style.display = 'none';
   if (vpRows) vpRows.innerHTML = '';
 }
+</script>
+
+<script>
+// ── PWA: Install Banner + Service Worker + Push Notifications ─────────────
+
+let _deferredInstallPrompt = null; // holds Android/Chrome install event
+let _swReg = null;                 // service worker registration
+
+// ── 1. Catch the Android "Add to Home Screen" prompt before it auto-fires
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  showInstallBanner('android');
+});
+
+// ── 2. Detect iOS — no beforeinstallprompt, must guide manually
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function isInStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+// ── 3. Show banner
+function showInstallBanner(platform) {
+  if (isInStandaloneMode()) return; // already installed — don't show
+  if (localStorage.getItem('sp_banner_dismissed')) return;
+
+  const banner = document.getElementById('installBanner');
+  const sub    = document.getElementById('ib-sub-text');
+  const btn    = document.getElementById('ib-install-btn');
+
+  if (platform === 'ios') {
+    sub.textContent = 'Tap the Share button ⬆ then "Add to Home Screen" to install.';
+    btn.textContent = 'How?';
+    btn.onclick = () => {
+      alert('1. Tap the Share button ⬆ at the bottom of Safari\n2. Scroll down and tap "Add to Home Screen"\n3. Tap Add — you\'re done!');
+    };
+  } else {
+    btn.textContent = 'Install App';
+    btn.onclick = installApp;
+  }
+
+  setTimeout(() => banner.classList.add('show'), 1500);
+}
+
+async function installApp() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  console.log('[PWA] install outcome:', outcome);
+  _deferredInstallPrompt = null;
+  dismissBanner();
+}
+
+function dismissBanner() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('sp_banner_dismissed', '1');
+}
+
+// ── 4. Register Service Worker
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    _swReg = await navigator.serviceWorker.register('/sw.js');
+    console.log('[SW] registered ✅');
+    await _swReg.update(); // check for new SW version
+  } catch(err) {
+    console.warn('[SW] registration failed:', err);
+  }
+}
+
+// ── 5. Subscribe to push notifications (call after user taps Allow)
+async function subscribePush() {
+  if (!_swReg) return;
+  try {
+    const { key } = await fetch('/api/vapid-public-key').then(r => r.json());
+    let sub = await _swReg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await _swReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key
+      });
+    }
+    await fetch('/api/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    console.log('[SW] push subscribed ✅');
+    document.getElementById('notifBtn').style.display = 'none';
+  } catch(err) {
+    console.warn('[SW] push subscribe error:', err);
+  }
+}
+
+// ── 6. Ask for notification permission (called by button tap)
+async function enableNotifications() {
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    await subscribePush();
+    document.getElementById('notifBtn').style.display = 'none';
+  }
+}
+
+// ── 7. Show the notification button if permission not yet granted
+function checkNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    // Show pulsing button — user must tap it (browsers block auto-popup)
+    document.getElementById('notifBtn').style.display = 'block';
+  } else if (Notification.permission === 'granted') {
+    subscribePush(); // already allowed — subscribe silently
+  }
+}
+
+// ── 8. Boot sequence
+(async () => {
+  await registerSW();
+
+  // iOS install banner (shown after a couple seconds)
+  if (isIOS() && !isInStandaloneMode()) {
+    showInstallBanner('ios');
+  }
+
+  // Notification permission check (short delay so page loads first)
+  setTimeout(checkNotifPermission, 2000);
+
+  // If already installed as PWA, subscribe immediately
+  if (isInStandaloneMode()) {
+    setTimeout(subscribePush, 1000);
+  }
+})();
+
+// ── 9. Detect when user installs the app (hides banner automatically)
+window.addEventListener('appinstalled', () => {
+  dismissBanner();
+  document.getElementById('notifBtn').style.display = 'none';
+  console.log('[PWA] app installed ✅');
+});
 </script>
 </body>
 </html>

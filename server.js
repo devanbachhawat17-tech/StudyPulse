@@ -7,6 +7,13 @@ const path     = require('path');
 const cron     = require('node-cron');
 const nodemailer = require('nodemailer');
 const { exec }   = require('child_process');
+const webpush   = require('web-push');
+
+// ── VAPID setup for push notifications ──
+const VAPID_PUBLIC  = 'BE_1Ye1Sb2_t9pUkxOOBmZ7iO4f-D_wIRhy3qaxB1o8AD2kCRnot8f9iiHsCiH01HUZCOpjL7Ie8xnQme_F6TGM';
+const VAPID_PRIVATE = 'DI3cLm-OO5-Y0Hb5YKrFHJa8XhLYhr3nWGpbPrCAjFw';
+webpush.setVapidDetails('mailto:devanbachhawat17@gmail.com', VAPID_PUBLIC, VAPID_PRIVATE);
+let pushSubscriptions = []; // store device subscriptions in memory
 
 const app = express();
 app.use(cors());
@@ -67,6 +74,39 @@ app.post('/api/anthropic-config', (req, res) => {
   saveConfig();
   res.json({ success: true });
 });
+
+// ─── PWA PUSH NOTIFICATIONS ───────────────────────
+app.get('/api/vapid-public-key', (req, res) => {
+  res.json({ key: VAPID_PUBLIC });
+});
+
+app.post('/api/push-subscribe', (req, res) => {
+  const sub = req.body;
+  if (!sub || !sub.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
+  // Remove old sub from same endpoint, add new one
+  pushSubscriptions = pushSubscriptions.filter(s => s.endpoint !== sub.endpoint);
+  pushSubscriptions.push(sub);
+  console.log(`📱 Push subscription saved (${pushSubscriptions.length} total)`);
+  res.json({ success: true });
+});
+
+app.post('/api/push-unsubscribe', (req, res) => {
+  const { endpoint } = req.body;
+  pushSubscriptions = pushSubscriptions.filter(s => s.endpoint !== endpoint);
+  res.json({ success: true });
+});
+
+async function sendPushNotification(title, body) {
+  if (!pushSubscriptions.length) return;
+  const payload = JSON.stringify({ title, body, url: '/' });
+  const results = await Promise.allSettled(
+    pushSubscriptions.map(sub => webpush.sendNotification(sub, payload))
+  );
+  const ok = results.filter(r => r.status === 'fulfilled').length;
+  console.log(`📱 Push sent to ${ok}/${pushSubscriptions.length} devices`);
+  // Remove dead subscriptions
+  pushSubscriptions = pushSubscriptions.filter((sub, i) => results[i].status === 'fulfilled');
+}
 
 // ─── SET CREDENTIALS (called from UI) ─────────────
 app.post('/api/config', (req, res) => {
@@ -285,9 +325,32 @@ app.get('/api/upcoming-tests', async (req, res) => {
 // ─── TOPIC SEARCH STUDY GUIDE ─────────────────────
 app.post('/api/topic-guide', async (req, res) => {
   const { courseId, courseName, topic } = req.body;
-  if (!courseId || !topic) return res.status(400).json({ error: 'courseId and topic required' });
+  if (!topic) return res.status(400).json({ error: 'topic required' });
 
   const ANTHROPIC_KEY = ANTHROPIC_API_KEY;
+
+  // ── No course selected OR demo mode — generate without Canvas ─────────
+  if (!courseId || courseId === 'demo') {
+    if (ANTHROPIC_KEY) {
+      const freePrompt = `Create a comprehensive, student-friendly study guide about "${topic}" for a middle/high school student. Include: key concepts with clear explanations, important formulas or vocabulary, step-by-step worked examples, 8+ practice questions with full answers, memory tricks/mnemonics, and common mistakes to avoid. Use markdown with clear headers, bold key terms, and tables where helpful.`;
+      try {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 4000, messages: [{ role: 'user', content: freePrompt }] })
+        });
+        const data = await r.json();
+        if (!data.error) {
+          const guide = data.content?.map(b => b.text || '').join('') || '';
+          if (guide) return res.json({ guide, sections: 1, matched: 0 });
+        }
+        console.log('Anthropic unavailable for topic-guide, using local fallback');
+      } catch(e) { console.log('topic-guide API error:', e.message); }
+    }
+    // Local fallback
+    return res.json({ guide: generateLocalGuide(topic), sections: 1, matched: 0, local: true });
+  }
+
   if (!ANTHROPIC_KEY) return res.status(400).json({ error: 'Anthropic API key not set.' });
 
   try {
@@ -400,11 +463,16 @@ ${context}
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 5000, messages: [{ role: 'user', content: prompt }] })
     });
     const data = await r.json();
-    const guide = data.content?.map(b => b.text || '').join('') || 'Could not generate guide.';
+    if (data.error) {
+      console.log('Anthropic error on topic-guide, using local fallback:', data.error.type);
+      return res.json({ guide: generateLocalGuide(topic), sections: useSections.length, matched: topSections.length, local: true });
+    }
+    const guide = data.content?.map(b => b.text || '').join('') || generateLocalGuide(topic);
     res.json({ guide, sections: useSections.length, matched: topSections.length });
   } catch(e) {
     console.error('topic-guide error:', e);
-    res.status(500).json({ error: e.message });
+    // Still return a local guide rather than failing entirely
+    res.json({ guide: generateLocalGuide(topic), sections: 0, matched: 0, local: true });
   }
 });
 
@@ -639,34 +707,200 @@ function stripHtml(html) {
     .trim();
 }
 
+// ── Local fallback study guide (works without Anthropic credits) ──────────
+function generateLocalGuide(topic) {
+  const t = (topic || '').toLowerCase();
+
+  // ── Area & Circumference / Circles ────────────────
+  if (t.includes('area') || t.includes('circumference') || t.includes('circle') || t.includes('perimeter')) {
+    return `# 📐 Study Guide: Area & Circumference
+
+---
+
+## 🔑 Key Formulas — MEMORIZE THESE
+
+| Shape | What You're Finding | Formula |
+|-------|-------------------|---------|
+| Circle | **Circumference** (perimeter) | C = 2πr  OR  C = πd |
+| Circle | **Area** | A = πr² |
+| Rectangle | **Perimeter** | P = 2l + 2w |
+| Rectangle | **Area** | A = l × w |
+| Triangle | **Area** | A = ½ × b × h |
+| Square | **Perimeter** | P = 4s |
+| Square | **Area** | A = s² |
+
+> 🧠 **π ≈ 3.14** (or use the π button on your calculator)
+
+---
+
+## 📖 Key Vocabulary
+
+- **Radius (r)** — distance from the center of a circle to its edge
+- **Diameter (d)** — distance across a circle through the center (**d = 2r**)
+- **Circumference** — the distance AROUND a circle (its perimeter)
+- **Area** — the space INSIDE a shape (measured in square units: cm², ft², etc.)
+- **Pi (π)** — the ratio of circumference to diameter, always ≈ 3.14159…
+
+---
+
+## 🔗 How Radius & Diameter Connect
+
+\`\`\`
+diameter = 2 × radius
+radius   = diameter ÷ 2
+\`\`\`
+
+**Example:** If diameter = 10 cm → radius = 5 cm
+
+---
+
+## ✏️ Worked Examples
+
+### Example 1 — Circumference of a circle
+> A circle has a radius of 7 cm. Find the circumference.
+
+**Step 1:** C = 2πr
+**Step 2:** C = 2 × 3.14 × 7
+**Step 3:** C = **43.96 cm** ✅
+
+---
+
+### Example 2 — Area of a circle
+> A circle has a diameter of 12 m. Find the area.
+
+**Step 1:** Find radius → r = 12 ÷ 2 = **6 m**
+**Step 2:** A = πr²
+**Step 3:** A = 3.14 × 6²
+**Step 4:** A = 3.14 × 36
+**Step 5:** A = **113.04 m²** ✅
+
+---
+
+### Example 3 — Area of a rectangle
+> Length = 8 ft, Width = 5 ft. Find area.
+
+**A = l × w = 8 × 5 = 40 ft²** ✅
+
+---
+
+### Example 4 — Area of a triangle
+> Base = 10 in, Height = 6 in. Find area.
+
+**A = ½ × b × h = ½ × 10 × 6 = 30 in²** ✅
+
+---
+
+## 🧠 Memory Tricks
+
+- **"Cherry Pies Are Delicious"** → **C = πd** (Circumference = π × diameter)
+- **"Apple Pies Are Too"** → **A = πr²** (Area = π × radius²)
+- **Circumference = around the EDGE** (like a fence around a yard)
+- **Area = fills the INSIDE** (like carpet filling a room)
+- Square the **r**adius for a**r**ea — both start with **r**!
+
+---
+
+## ✏️ Practice Questions
+
+**1.** A circle has radius = 5 cm. Find its circumference. *(Answer: 31.4 cm)*
+
+**2.** A circle has diameter = 20 ft. Find its area. *(Answer: 314 ft²)*
+
+**3.** A rectangle is 9 m × 4 m. Find its area and perimeter. *(Area: 36 m² | Perimeter: 26 m)*
+
+**4.** A triangle has base 14 in and height 8 in. Find its area. *(Answer: 56 in²)*
+
+**5.** A circle has circumference = 62.8 cm. What is the radius? *(Answer: 10 cm — work backwards: r = C ÷ 2π)*
+
+**6.** A square has side length 7 m. Find its area and perimeter. *(Area: 49 m² | Perimeter: 28 m)*
+
+**7.** Which is larger: the area of a circle with r=4 or a square with s=7? *(Square: 49 vs Circle: 50.24 — circle wins!)*
+
+---
+
+## ⚠️ Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Using diameter instead of radius in A = πr² | Always halve the diameter first! |
+| Forgetting to square the radius | A = π × r × r, not π × r |
+| Mixing up circumference and area | Circumference = around (1D units), Area = inside (² units) |
+| Writing area in cm instead of cm² | Area is ALWAYS in square units |
+| Using π = 3 instead of 3.14 | Use 3.14 unless told otherwise |
+
+---
+
+## 💡 How to Study This
+
+1. **Write the formulas 5x** from memory — muscle memory locks them in
+2. **Do 5 practice problems** each for circles, rectangles, and triangles
+3. **Make flashcards:** front = shape + what you're finding, back = formula + worked example
+4. **Check your units** every single answer — area needs ², circumference doesn't
+
+---
+
+*Generated by StudyPulse 📡 — ask your AI tutor any follow-up questions!*`;
+  }
+
+  // ── Generic fallback for any topic ─────────────────
+  return `# 📚 Study Guide: ${topic || 'Topic'}
+
+> ⚡ **Quick-start guide** — AI-powered deep dive unlocks when Anthropic credits activate.
+
+## How to use this guide
+1. Read through the key concepts below
+2. Try the practice questions
+3. Ask the AI tutor (bottom of page) any follow-up questions — it works independently!
+
+## Key Concepts for: ${topic}
+*Review your class notes, textbook, and any handouts your teacher gave you on this topic.*
+
+## Study Tips
+- **Active recall:** cover your notes and try to write everything you remember
+- **Spaced repetition:** study for 20 min, take a 10 min break, review again
+- **Teach it:** explain the topic out loud as if teaching a friend
+
+## Practice Questions
+Write 5 questions about **${topic}** that you think could appear on a quiz, then answer them.
+
+---
+*StudyPulse 📡 — AI study guide will auto-enhance once credits are active*`;
+}
+
 app.post('/api/study-guide', async (req, res) => {
-  const { courseId, courseName, focusTopic, quizTitle, quizDescription, quizDue } = req.body;
+  const { courseId, courseName, focusTopic, quizTitle, quizDescription, quizDue, topic } = req.body;
   if (!courseId) return res.status(400).json({ error: 'courseId required' });
 
   const ANTHROPIC_KEY = ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) return res.status(400).json({ error: 'Anthropic API key not configured.' });
 
-  // ── DEMO MODE ──────────────────────────────────────
+  // ── DEMO / TOPIC MODE ──────────────────────────────
   if (courseId === 'demo') {
-    const demoContent = `The American Revolution (1765–1783) was the political upheaval during which the Thirteen Colonies broke from Britain and became the United States. Key causes included taxation without representation (Stamp Act, Townshend Acts, Tea Act), Enlightenment ideas about natural rights (John Locke), and colonial assemblies wanting self-governance. Key events: Boston Massacre (1770), Boston Tea Party (1773), Lexington & Concord (1775), Declaration of Independence (July 4, 1776), Battle of Saratoga (1777 — turning point, brought France as ally), Valley Forge (1777-78 — Washington's winter camp), Battle of Yorktown (1781 — Cornwallis surrenders). Key people: George Washington (Commander-in-Chief), Thomas Jefferson (wrote Declaration), Benjamin Franklin (diplomat, secured French alliance), Paul Revere (midnight ride), King George III (British king), Lord Cornwallis (British general). The Declaration of Independence states all men are created equal with rights to life, liberty, and the pursuit of happiness — based on Locke's natural rights theory. The Treaty of Paris (1783) officially ended the war.`;
-    const prompt = `Create a comprehensive study guide for a quiz on the American Revolution. Use this content:\n\n${demoContent}\n\nInclude: key concepts, timeline, important people, practice questions with answers, memory tricks, and common mistakes. Use markdown with clear headers.`;
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
-      });
-      const data = await r.json();
-      if (data.error) {
-        console.error('Anthropic demo error:', JSON.stringify(data.error));
-        return res.status(500).json({ error: friendlyAIError(data.error) });
+    const requestedTopic = topic || focusTopic || quizTitle || 'General';
+
+    // Try Anthropic first, fall back to local guide if no credits
+    if (ANTHROPIC_KEY) {
+      const demoPrompt = `Create a comprehensive, student-friendly study guide about "${requestedTopic}" for a middle/high school student. Include: key concepts with clear explanations, important formulas or vocabulary, step-by-step worked examples, 8+ practice questions with answers, memory tricks/mnemonics, and common mistakes to avoid. Use markdown with clear headers, bold key terms, and tables where helpful. Make it thorough and engaging.`;
+      try {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 3000, messages: [{ role: 'user', content: demoPrompt }] })
+        });
+        const data = await r.json();
+        if (!data.error) {
+          const guide = data.content?.map(b => b.text || '').join('') || '';
+          if (guide) return res.json({ guide, sections: 1, topics: [requestedTopic] });
+        }
+        // If API fails fall through to local guide
+        console.log('Anthropic unavailable, using local guide for:', requestedTopic);
+      } catch(e) {
+        console.log('Anthropic fetch error, using local guide:', e.message);
       }
-      const guide = data.content?.map(b => b.text || '').join('') || 'Could not generate demo.';
-      return res.json({ guide, sections: 1, topics: ['American Revolution'] });
-    } catch(demoErr) {
-      console.error('Demo study guide fetch error:', demoErr);
-      return res.status(500).json({ error: demoErr.message });
     }
+
+    // Local fallback — always works
+    const guide = generateLocalGuide(requestedTopic);
+    return res.json({ guide, sections: 1, topics: [requestedTopic], local: true });
   }
 
   try {
@@ -1280,32 +1514,124 @@ app.post('/api/test-email', async (req, res) => {
   res.json(result);
 });
 
-// ─── EMAIL SCHEDULES ──────────────────────────────
-// Daily 7:30 AM
-cron.schedule('30 7 * * *', async () => {
-  if (!EMAIL_ENABLED) return;
-  console.log('📧 Sending morning email...');
-  const { subject, html } = await buildDailyEmail('morning');
-  await sendEmail(subject, html);
-}, { timezone: 'America/New_York' });
+// ─── USER SCHEDULE PREFERENCES ───────────────────
+// Stored from survey — which times the user chose
+let userSchedulePrefs = {
+  times:  ['☀️ 7:30 AM — Morning', '🌙 8:00 PM — Evening'], // default
+  weekly: '📅 Yes — Sunday evening'
+};
 
-// Daily 8:00 PM
-cron.schedule('0 20 * * *', async () => {
-  if (!EMAIL_ENABLED) return;
-  console.log('📧 Sending evening email...');
-  const { subject, html } = await buildDailyEmail('evening');
-  await sendEmail(subject, html);
-}, { timezone: 'America/New_York' });
+// Load saved prefs from config if present
+try {
+  const savedCfgRaw = fs.existsSync(CONFIG_FILE) ? fs.readFileSync(CONFIG_FILE,'utf8') : '{}';
+  const savedCfg2 = JSON.parse(savedCfgRaw);
+  if (savedCfg2.SCHEDULE_PREFS) userSchedulePrefs = savedCfg2.SCHEDULE_PREFS;
+} catch(e) {}
 
-// Weekly Sunday 6:00 PM
-cron.schedule('0 18 * * 0', async () => {
-  if (!EMAIL_ENABLED) return;
-  console.log('📧 Sending weekly summary email...');
-  const { subject, html } = await buildWeeklyEmail();
-  await sendEmail(subject, html);
-}, { timezone: 'America/New_York' });
+app.post('/api/save-preferences', (req, res) => {
+  const { name, times, weekly, style, tone } = req.body;
+  if (times) userSchedulePrefs.times  = times;
+  if (weekly) userSchedulePrefs.weekly = weekly;
+  if (name)  STUDENT_NAME = name;
 
-console.log('📧 Email schedule: 7:30 AM daily · 8:00 PM daily · Sunday 6:00 PM weekly');
+  // Persist to config
+  try {
+    const cfgRaw = fs.existsSync(CONFIG_FILE) ? fs.readFileSync(CONFIG_FILE,'utf8') : '{}';
+    const cfg = JSON.parse(cfgRaw);
+    cfg.SCHEDULE_PREFS = userSchedulePrefs;
+    if (name) cfg.STUDENT_NAME = name;
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+  } catch(e) { console.error('Could not save prefs:', e.message); }
+
+  rescheduleAll();
+  console.log('📅 Schedule updated from survey:', userSchedulePrefs);
+  res.json({ success: true, prefs: userSchedulePrefs });
+});
+
+app.get('/api/schedule-status', (req, res) => {
+  res.json({ prefs: userSchedulePrefs, emailEnabled: EMAIL_ENABLED, smsEnabled: SMS_ENABLED });
+});
+
+// ─── UNIFIED REMINDER SENDER ──────────────────────
+// One function that sends email + SMS + push at the same time
+async function sendAllReminders(type) {
+  const label = { morning:'☀️ Morning', midday:'🕛 Midday', evening:'🌙 Evening', weekly:'📅 Weekly' }[type] || type;
+  console.log(`⏰ [${new Date().toLocaleTimeString()}] Sending ${label} reminders (email + SMS + push)...`);
+
+  const results = { email: null, sms: null, push: null };
+
+  // 1. Build message
+  let smsMsg, emailSubject, emailHtml;
+  if (type === 'weekly') {
+    smsMsg = await buildDigestMessage('evening'); // good weekly summary
+    const built = await buildWeeklyEmail();
+    emailSubject = built.subject;
+    emailHtml    = built.html;
+  } else {
+    smsMsg = await buildDigestMessage(type);
+    const built = await buildDailyEmail(type === 'midday' ? 'morning' : type);
+    emailSubject = built.subject;
+    emailHtml    = built.html;
+  }
+
+  // 2. Send SMS / ntfy
+  if (SMS_ENABLED) {
+    try { results.sms = await sendSMS(smsMsg); }
+    catch(e) { results.sms = { success: false, error: e.message }; }
+  }
+
+  // 3. Send Email
+  if (EMAIL_ENABLED) {
+    try { results.email = await sendEmail(emailSubject, emailHtml); }
+    catch(e) { results.email = { success: false, error: e.message }; }
+  }
+
+  // 4. Send push notification to all devices
+  try {
+    const pushTitle = { morning:'☀️ Morning Briefing', midday:'🕛 Midday Check-in', evening:'🌙 Evening Wrap-up', weekly:'📅 Weekly Summary' }[type] || 'StudyPulse 📡';
+    results.push = await sendPushNotification(pushTitle, smsMsg.slice(0, 120) + (smsMsg.length > 120 ? '…' : ''));
+  } catch(e) { results.push = { success: false, error: e.message }; }
+
+  console.log(`✅ ${label} reminders sent — email:${results.email?.success} sms:${results.sms?.success} push:${results.push?.success}`);
+  return results;
+}
+
+// ─── DYNAMIC SCHEDULE (re-built whenever prefs change) ────────────────────
+let activeCronJobs = [];
+
+function rescheduleAll() {
+  // Cancel all existing cron jobs
+  activeCronJobs.forEach(j => j.stop());
+  activeCronJobs = [];
+
+  const times   = userSchedulePrefs.times  || [];
+  const weekly  = userSchedulePrefs.weekly || '';
+
+  if (times.includes('☀️ 7:30 AM — Morning')) {
+    activeCronJobs.push(cron.schedule('30 7 * * *',  () => sendAllReminders('morning'), { timezone: 'America/New_York' }));
+    console.log('  📅 Morning reminders: 7:30 AM ET daily');
+  }
+  if (times.includes('🕛 12:00 PM — Midday')) {
+    activeCronJobs.push(cron.schedule('0 12 * * *',  () => sendAllReminders('midday'),  { timezone: 'America/New_York' }));
+    console.log('  📅 Midday reminders:  12:00 PM ET daily');
+  }
+  if (times.includes('🌙 8:00 PM — Evening')) {
+    activeCronJobs.push(cron.schedule('0 20 * * *',  () => sendAllReminders('evening'), { timezone: 'America/New_York' }));
+    console.log('  📅 Evening reminders: 8:00 PM ET daily');
+  }
+  if (weekly.includes('Yes')) {
+    activeCronJobs.push(cron.schedule('0 18 * * 0',  () => sendAllReminders('weekly'),  { timezone: 'America/New_York' }));
+    console.log('  📅 Weekly summary:    Sunday 6:00 PM ET');
+  }
+
+  if (activeCronJobs.length === 0) {
+    console.log('  ⚠️  No reminder times selected — no automatic reminders will be sent.');
+  }
+}
+
+// Boot schedule on startup
+console.log('📅 Starting reminder schedule...');
+rescheduleAll();
 
 // ─── PUSH NOTIFICATIONS (ntfy.sh) ────────────────
 // ── Send via Mac Messages app (free, uses your Apple ID) ──
@@ -1331,32 +1657,18 @@ async function sendSMS(message) {
     return { success: false, reason: 'No phone number configured' };
   }
 
-  // ── Method 1: ntfy.sh push notification (free, instant) ──
-  if (NTFY_TOPIC) {
+  // ── Method 1: Mac Messages app (iMessage) ──
+  if (process.platform === 'darwin') {
     try {
-      const r = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-        method: 'POST',
-        headers: { 'Title': 'StudyPulse', 'Priority': 'default', 'Content-Type': 'text/plain' },
-        body: message
-      });
-      if (!r.ok) throw new Error(`ntfy error ${r.status}`);
-      console.log(`✅ Notification sent via ntfy to topic: ${NTFY_TOPIC}`);
-      return { success: true, method: 'ntfy', gateway: NTFY_TOPIC };
+      await sendViaMacMessages(PHONE_NUMBER, message);
+      console.log(`✅ Message sent via Mac Messages to ${PHONE_NUMBER}`);
+      return { success: true, method: 'messages' };
     } catch (e) {
-      console.error('❌ ntfy failed:', e.message);
+      console.error('❌ Mac Messages failed:', e.message);
     }
   }
 
-  // ── Method 2: Mac Messages app ──
-  try {
-    await sendViaMacMessages(PHONE_NUMBER, message);
-    console.log(`✅ SMS sent via Mac Messages to ${PHONE_NUMBER}`);
-    return { success: true, method: 'mac-messages', gateway: PHONE_NUMBER };
-  } catch (e) {
-    console.error('❌ Mac Messages failed:', e.message);
-  }
-
-  // ── Method 3: Brevo SMTP → carrier email gateway ──
+  // ── Method 2: Brevo SMTP → carrier email gateway ──
   const gateway = `${PHONE_NUMBER}@${CARRIER_GATEWAY}`;
   if (BREVO_USER && BREVO_SMTP_KEY) {
     try {
@@ -1379,7 +1691,7 @@ async function sendSMS(message) {
     }
   }
 
-  // ── Method 3: Gmail App Password → carrier gateway ──
+  // ── Method 3: Gmail App Password → carrier gateway (last resort) ──
   if (GMAIL_USER && GMAIL_APP_PASS && GMAIL_APP_PASS !== 'x') {
     try {
       const transport = nodemailer.createTransport({
@@ -1520,13 +1832,13 @@ Keep total length under 300 words. Plain text only, no markdown.`;
 
 // ─── SEND DIGEST ENDPOINT (manual trigger from UI) ─
 app.post('/api/send-digest', async (req, res) => {
-  const { type } = req.body; // morning | midday | evening
-  if (!['morning', 'midday', 'evening'].includes(type))
-    return res.status(400).json({ error: 'type must be morning, midday, or evening' });
+  const { type } = req.body;
+  if (!['morning', 'midday', 'evening', 'weekly'].includes(type))
+    return res.status(400).json({ error: 'type must be morning, midday, evening, or weekly' });
   try {
-    const message = await buildDigestMessage(type);
-    const result  = await sendSMS(message);
-    res.json({ ...result, message, type });
+    const results = await sendAllReminders(type);
+    const message = await buildDigestMessage(type === 'weekly' ? 'evening' : type);
+    res.json({ ...results.sms, email: results.email, push: results.push, message, type });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -1539,29 +1851,7 @@ app.post('/api/test-sms', async (req, res) => {
   res.json({ ...result, message: msg });
 });
 
-// ─── SCHEDULED DIGESTS ────────────────────────────
-// 7:30 AM morning briefing
-cron.schedule('30 7 * * *', async () => {
-  console.log('⏰ Sending morning digest...');
-  const msg = await buildDigestMessage('morning');
-  await sendSMS(msg);
-}, { timezone: 'America/New_York' });
-
-// 12:00 PM midday check-in
-cron.schedule('0 12 * * *', async () => {
-  console.log('⏰ Sending midday digest...');
-  const msg = await buildDigestMessage('midday');
-  await sendSMS(msg);
-}, { timezone: 'America/New_York' });
-
-// 8:00 PM evening wind-down
-cron.schedule('0 20 * * *', async () => {
-  console.log('⏰ Sending evening digest...');
-  const msg = await buildDigestMessage('evening');
-  await sendSMS(msg);
-}, { timezone: 'America/New_York' });
-
-console.log('📅 Scheduled: 7:30 AM · 12:00 PM · 8:00 PM (ET) daily SMS digests');
+// (SMS/Email/Push schedule is now handled by rescheduleAll() above)
 
 // ─── AUTO SYNC CANVAS ─────────────────────────────
 async function runCanvasSync() {
