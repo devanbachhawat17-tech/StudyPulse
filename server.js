@@ -10,9 +10,11 @@ const { exec }   = require('child_process');
 const webpush   = require('web-push');
 
 // ── VAPID setup for push notifications ──
-const VAPID_PUBLIC  = 'BE_1Ye1Sb2_t9pUkxOOBmZ7iO4f-D_wIRhy3qaxB1o8AD2kCRnot8f9iiHsCiH01HUZCOpjL7Ie8xnQme_F6TGM';
-const VAPID_PRIVATE = 'DI3cLm-OO5-Y0Hb5YKrFHJa8XhLYhr3nWGpbPrCAjFw';
-webpush.setVapidDetails('mailto:devanbachhawat17@gmail.com', VAPID_PUBLIC, VAPID_PRIVATE);
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC  || '';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE || '';
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails('mailto:' + (process.env.EMAIL_TO || 'devanbachhawat17@gmail.com'), VAPID_PUBLIC, VAPID_PRIVATE);
+}
 let pushSubscriptions = []; // store device subscriptions in memory
 
 const app = express();
@@ -42,19 +44,21 @@ function friendlyAIError(apiError) {
 }
 
 // ─── CONFIG ───────────────────────────────────────
-let CANVAS_DOMAIN   = process.env.CANVAS_DOMAIN   || 'somsd.instructure.com';
-let CANVAS_TOKEN    = process.env.CANVAS_TOKEN    || '17971~zF33WDVYDXBazn3FYwuJQTEuVFr9Rk7DTGuu2YwVmXJyuAc2XDzx2KYMWFL7R2hK';
-let STUDENT_NAME    = process.env.STUDENT_NAME    || 'Devan';
-let PHONE_NUMBER    = process.env.PHONE_NUMBER    || '8622208909';
+let CANVAS_DOMAIN   = process.env.CANVAS_DOMAIN   || '';
+let CANVAS_TOKEN    = process.env.CANVAS_TOKEN    || '';
+let STUDENT_NAME    = process.env.STUDENT_NAME    || 'Student';
+let PHONE_NUMBER    = process.env.PHONE_NUMBER    || '';
 let GMAIL_USER      = process.env.GMAIL_USER      || '';
 let GMAIL_APP_PASS  = process.env.GMAIL_APP_PASS  || '';
 let SMS_ENABLED     = process.env.SMS_ENABLED ? process.env.SMS_ENABLED === 'true' : true;
-let EMAIL_TO        = process.env.EMAIL_TO        || 'devanbachhawat17@gmail.com';
+let EMAIL_TO        = process.env.EMAIL_TO        || '';
 let EMAIL_ENABLED   = process.env.EMAIL_ENABLED ? process.env.EMAIL_ENABLED === 'true' : true;
-let RESEND_API_KEY  = process.env.RESEND_API_KEY  || 're_d4MQZmWx_MATzXywvbwqsQLQbLusabFHP';
-let BREVO_USER      = process.env.BREVO_USER      || 'a95e75001@smtp-brevo.com';
-let BREVO_SMTP_KEY  = process.env.BREVO_SMTP_KEY  || 'xsmtpsib-e8244b6ef9631e3e5979d2a1e1476136381c861bbec97fc76c4a8d18aaa77f8c-85WnOmRsPSFGLeia';
-let NTFY_TOPIC        = process.env.NTFY_TOPIC      || 'studypulse-devan';
+let RESEND_API_KEY  = process.env.RESEND_API_KEY  || '';
+let BREVO_USER      = process.env.BREVO_USER      || '';
+let BREVO_SMTP_KEY  = process.env.BREVO_SMTP_KEY  || '';
+let BREVO_API_KEY   = process.env.BREVO_API_KEY   || '';
+let BREVO_SENDER     = process.env.BREVO_SENDER    || '';
+let NTFY_TOPIC        = process.env.NTFY_TOPIC      || '';
 let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''; // loaded from config.json at startup
 // SMS carrier gateway — change if not on T-Mobile:
 //   T-Mobile:  tmomail.net
@@ -548,7 +552,7 @@ function loadConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
 }
 function saveConfig() {
-  const cfg = { CANVAS_DOMAIN, CANVAS_TOKEN, STUDENT_NAME, PHONE_NUMBER, GMAIL_USER, GMAIL_APP_PASS, SMS_ENABLED, EMAIL_TO, EMAIL_ENABLED, RESEND_API_KEY, BREVO_USER, BREVO_SMTP_KEY, NTFY_TOPIC, ANTHROPIC_API_KEY, CARRIER_GATEWAY };
+  const cfg = { CANVAS_DOMAIN, CANVAS_TOKEN, STUDENT_NAME, PHONE_NUMBER, GMAIL_USER, GMAIL_APP_PASS, SMS_ENABLED, EMAIL_TO, EMAIL_ENABLED, RESEND_API_KEY, BREVO_USER, BREVO_SMTP_KEY, BREVO_API_KEY, BREVO_SENDER, NTFY_TOPIC, ANTHROPIC_API_KEY, CARRIER_GATEWAY };
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
   console.log('💾 Config saved to config.json');
 }
@@ -567,6 +571,8 @@ if (savedCfg.EMAIL_ENABLED)  EMAIL_ENABLED  = savedCfg.EMAIL_ENABLED;
 if (savedCfg.RESEND_API_KEY) RESEND_API_KEY = savedCfg.RESEND_API_KEY;
 if (savedCfg.BREVO_USER)     BREVO_USER     = savedCfg.BREVO_USER;
 if (savedCfg.BREVO_SMTP_KEY) BREVO_SMTP_KEY = savedCfg.BREVO_SMTP_KEY;
+if (savedCfg.BREVO_API_KEY)  BREVO_API_KEY  = savedCfg.BREVO_API_KEY;
+if (savedCfg.BREVO_SENDER)   BREVO_SENDER   = savedCfg.BREVO_SENDER;
 if (savedCfg.NTFY_TOPIC)        NTFY_TOPIC        = savedCfg.NTFY_TOPIC;
 if (savedCfg.ANTHROPIC_API_KEY) ANTHROPIC_API_KEY = savedCfg.ANTHROPIC_API_KEY;
 if (savedCfg.CARRIER_GATEWAY)   CARRIER_GATEWAY   = savedCfg.CARRIER_GATEWAY;
@@ -1668,8 +1674,30 @@ async function sendSMS(message) {
     }
   }
 
-  // ── Method 2: Brevo SMTP → carrier email gateway ──
+  // ── Method 2: Brevo HTTPS API → carrier email gateway (works on hosts that block SMTP ports, e.g. Railway) ──
   const gateway = `${PHONE_NUMBER}@${CARRIER_GATEWAY}`;
+  if (BREVO_API_KEY && BREVO_SENDER) {
+    try {
+      const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sender: { email: BREVO_SENDER, name: 'StudyPulse' },
+          to: [{ email: gateway }],
+          subject: '',
+          textContent: message
+        })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || JSON.stringify(data));
+      console.log(`✅ SMS sent via Brevo API to ${gateway}`);
+      return { success: true, method: 'brevo-api', gateway };
+    } catch (e) {
+      console.error('❌ Brevo API SMS failed:', e.message);
+    }
+  }
+
+  // ── Method 2b: Brevo SMTP → carrier email gateway (SMTP ports are blocked on some hosts) ──
   if (BREVO_USER && BREVO_SMTP_KEY) {
     try {
       const transport = nodemailer.createTransport({
