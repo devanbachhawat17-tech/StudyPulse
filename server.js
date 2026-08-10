@@ -1687,7 +1687,7 @@ async function sendSMS(message) {
         body: JSON.stringify({
           sender: { email: BREVO_SENDER, name: 'StudyPulse' },
           to: [{ email: gateway }],
-          subject: ' ',
+          subject: 'StudyPulse',
           textContent: message
         })
       });
