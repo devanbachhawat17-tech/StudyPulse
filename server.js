@@ -44,22 +44,25 @@ function friendlyAIError(apiError) {
 }
 
 // ─── CONFIG ───────────────────────────────────────
-let CANVAS_DOMAIN   = process.env.CANVAS_DOMAIN   || '';
-let CANVAS_TOKEN    = process.env.CANVAS_TOKEN    || '';
-let STUDENT_NAME    = process.env.STUDENT_NAME    || 'Student';
-let PHONE_NUMBER    = process.env.PHONE_NUMBER    || '';
-let GMAIL_USER      = process.env.GMAIL_USER      || '';
-let GMAIL_APP_PASS  = process.env.GMAIL_APP_PASS  || '';
+// .trim() defends against trailing newlines/whitespace picked up when
+// pasting secrets into a host's environment-variable UI (breaks HTTP headers/auth).
+const envTrim = (v, fallback = '') => (v != null ? String(v).trim() : fallback);
+let CANVAS_DOMAIN   = envTrim(process.env.CANVAS_DOMAIN);
+let CANVAS_TOKEN    = envTrim(process.env.CANVAS_TOKEN);
+let STUDENT_NAME    = envTrim(process.env.STUDENT_NAME, 'Student');
+let PHONE_NUMBER    = envTrim(process.env.PHONE_NUMBER);
+let GMAIL_USER      = envTrim(process.env.GMAIL_USER);
+let GMAIL_APP_PASS  = envTrim(process.env.GMAIL_APP_PASS);
 let SMS_ENABLED     = process.env.SMS_ENABLED ? process.env.SMS_ENABLED === 'true' : true;
-let EMAIL_TO        = process.env.EMAIL_TO        || '';
+let EMAIL_TO        = envTrim(process.env.EMAIL_TO);
 let EMAIL_ENABLED   = process.env.EMAIL_ENABLED ? process.env.EMAIL_ENABLED === 'true' : true;
-let RESEND_API_KEY  = process.env.RESEND_API_KEY  || '';
-let BREVO_USER      = process.env.BREVO_USER      || '';
-let BREVO_SMTP_KEY  = process.env.BREVO_SMTP_KEY  || '';
-let BREVO_API_KEY   = process.env.BREVO_API_KEY   || '';
-let BREVO_SENDER     = process.env.BREVO_SENDER    || '';
-let NTFY_TOPIC        = process.env.NTFY_TOPIC      || '';
-let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''; // loaded from config.json at startup
+let RESEND_API_KEY  = envTrim(process.env.RESEND_API_KEY);
+let BREVO_USER      = envTrim(process.env.BREVO_USER);
+let BREVO_SMTP_KEY  = envTrim(process.env.BREVO_SMTP_KEY);
+let BREVO_API_KEY   = envTrim(process.env.BREVO_API_KEY);
+let BREVO_SENDER    = envTrim(process.env.BREVO_SENDER);
+let NTFY_TOPIC        = envTrim(process.env.NTFY_TOPIC);
+let ANTHROPIC_API_KEY = envTrim(process.env.ANTHROPIC_API_KEY); // loaded from config.json at startup
 // SMS carrier gateway — change if not on T-Mobile:
 //   T-Mobile:  tmomail.net
 //   Verizon:   vtext.com
