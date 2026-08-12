@@ -61,6 +61,9 @@ let BREVO_USER      = envTrim(process.env.BREVO_USER);
 let BREVO_SMTP_KEY  = envTrim(process.env.BREVO_SMTP_KEY);
 let BREVO_API_KEY   = envTrim(process.env.BREVO_API_KEY);
 let BREVO_SENDER    = envTrim(process.env.BREVO_SENDER);
+let GMAIL_CLIENT_ID     = envTrim(process.env.GMAIL_CLIENT_ID);
+let GMAIL_CLIENT_SECRET = envTrim(process.env.GMAIL_CLIENT_SECRET);
+let GMAIL_REFRESH_TOKEN = envTrim(process.env.GMAIL_REFRESH_TOKEN);
 let NTFY_TOPIC        = envTrim(process.env.NTFY_TOPIC);
 let ANTHROPIC_API_KEY = envTrim(process.env.ANTHROPIC_API_KEY); // loaded from config.json at startup
 // SMS carrier gateway — change if not on T-Mobile:
@@ -555,7 +558,7 @@ function loadConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
 }
 function saveConfig() {
-  const cfg = { CANVAS_DOMAIN, CANVAS_TOKEN, STUDENT_NAME, PHONE_NUMBER, GMAIL_USER, GMAIL_APP_PASS, SMS_ENABLED, EMAIL_TO, EMAIL_ENABLED, RESEND_API_KEY, BREVO_USER, BREVO_SMTP_KEY, BREVO_API_KEY, BREVO_SENDER, NTFY_TOPIC, ANTHROPIC_API_KEY, CARRIER_GATEWAY };
+  const cfg = { CANVAS_DOMAIN, CANVAS_TOKEN, STUDENT_NAME, PHONE_NUMBER, GMAIL_USER, GMAIL_APP_PASS, SMS_ENABLED, EMAIL_TO, EMAIL_ENABLED, RESEND_API_KEY, BREVO_USER, BREVO_SMTP_KEY, BREVO_API_KEY, BREVO_SENDER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, NTFY_TOPIC, ANTHROPIC_API_KEY, CARRIER_GATEWAY };
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
   console.log('💾 Config saved to config.json');
 }
@@ -576,6 +579,9 @@ if (savedCfg.BREVO_USER)     BREVO_USER     = savedCfg.BREVO_USER;
 if (savedCfg.BREVO_SMTP_KEY) BREVO_SMTP_KEY = savedCfg.BREVO_SMTP_KEY;
 if (savedCfg.BREVO_API_KEY)  BREVO_API_KEY  = savedCfg.BREVO_API_KEY;
 if (savedCfg.BREVO_SENDER)   BREVO_SENDER   = savedCfg.BREVO_SENDER;
+if (savedCfg.GMAIL_CLIENT_ID)     GMAIL_CLIENT_ID     = savedCfg.GMAIL_CLIENT_ID;
+if (savedCfg.GMAIL_CLIENT_SECRET) GMAIL_CLIENT_SECRET = savedCfg.GMAIL_CLIENT_SECRET;
+if (savedCfg.GMAIL_REFRESH_TOKEN) GMAIL_REFRESH_TOKEN = savedCfg.GMAIL_REFRESH_TOKEN;
 if (savedCfg.NTFY_TOPIC)        NTFY_TOPIC        = savedCfg.NTFY_TOPIC;
 if (savedCfg.ANTHROPIC_API_KEY) ANTHROPIC_API_KEY = savedCfg.ANTHROPIC_API_KEY;
 if (savedCfg.CARRIER_GATEWAY)   CARRIER_GATEWAY   = savedCfg.CARRIER_GATEWAY;
@@ -1660,6 +1666,38 @@ end tell`;
   });
 }
 
+// ── Gmail API (OAuth) → carrier email gateway. Sends as a real Gmail message,
+// which carrier spam filters trust far more than an unfamiliar ESP like Brevo. ──
+async function getGmailAccessToken() {
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: GMAIL_CLIENT_ID,
+      client_secret: GMAIL_CLIENT_SECRET,
+      refresh_token: GMAIL_REFRESH_TOKEN,
+      grant_type: 'refresh_token'
+    })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error_description || JSON.stringify(data));
+  return data.access_token;
+}
+
+async function sendViaGmailApi(to, subject, text) {
+  const accessToken = await getGmailAccessToken();
+  const rfc822 = `To: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${text}`;
+  const raw = Buffer.from(rfc822).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error?.message || JSON.stringify(data));
+  return data;
+}
+
 async function sendSMS(message) {
   if (!PHONE_NUMBER) {
     console.log('📵 No phone number configured — skipping SMS.');
@@ -1677,8 +1715,20 @@ async function sendSMS(message) {
     }
   }
 
-  // ── Method 2: Brevo HTTPS API → carrier email gateway (works on hosts that block SMTP ports, e.g. Railway) ──
   const gateway = `${PHONE_NUMBER}@${CARRIER_GATEWAY}`;
+
+  // ── Method 1b: Gmail API → carrier email gateway (best deliverability, tried first) ──
+  if (GMAIL_CLIENT_ID && GMAIL_CLIENT_SECRET && GMAIL_REFRESH_TOKEN) {
+    try {
+      await sendViaGmailApi(gateway, 'StudyPulse', message);
+      console.log(`✅ SMS sent via Gmail API to ${gateway}`);
+      return { success: true, method: 'gmail-api', gateway };
+    } catch (e) {
+      console.error('❌ Gmail API SMS failed:', e.message);
+    }
+  }
+
+  // ── Method 2: Brevo HTTPS API → carrier email gateway (works on hosts that block SMTP ports, e.g. Railway) ──
   if (BREVO_API_KEY && BREVO_SENDER) {
     try {
       const r = await fetch('https://api.brevo.com/v3/smtp/email', {
