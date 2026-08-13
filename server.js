@@ -64,6 +64,9 @@ let BREVO_SENDER    = envTrim(process.env.BREVO_SENDER);
 let GMAIL_CLIENT_ID     = envTrim(process.env.GMAIL_CLIENT_ID);
 let GMAIL_CLIENT_SECRET = envTrim(process.env.GMAIL_CLIENT_SECRET);
 let GMAIL_REFRESH_TOKEN = envTrim(process.env.GMAIL_REFRESH_TOKEN);
+let TWILIO_ACCOUNT_SID  = envTrim(process.env.TWILIO_ACCOUNT_SID);
+let TWILIO_AUTH_TOKEN   = envTrim(process.env.TWILIO_AUTH_TOKEN);
+let TWILIO_PHONE_NUMBER = envTrim(process.env.TWILIO_PHONE_NUMBER);
 let NTFY_TOPIC        = envTrim(process.env.NTFY_TOPIC);
 let ANTHROPIC_API_KEY = envTrim(process.env.ANTHROPIC_API_KEY); // loaded from config.json at startup
 // SMS carrier gateway — change if not on T-Mobile:
@@ -558,7 +561,7 @@ function loadConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
 }
 function saveConfig() {
-  const cfg = { CANVAS_DOMAIN, CANVAS_TOKEN, STUDENT_NAME, PHONE_NUMBER, GMAIL_USER, GMAIL_APP_PASS, SMS_ENABLED, EMAIL_TO, EMAIL_ENABLED, RESEND_API_KEY, BREVO_USER, BREVO_SMTP_KEY, BREVO_API_KEY, BREVO_SENDER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, NTFY_TOPIC, ANTHROPIC_API_KEY, CARRIER_GATEWAY };
+  const cfg = { CANVAS_DOMAIN, CANVAS_TOKEN, STUDENT_NAME, PHONE_NUMBER, GMAIL_USER, GMAIL_APP_PASS, SMS_ENABLED, EMAIL_TO, EMAIL_ENABLED, RESEND_API_KEY, BREVO_USER, BREVO_SMTP_KEY, BREVO_API_KEY, BREVO_SENDER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, NTFY_TOPIC, ANTHROPIC_API_KEY, CARRIER_GATEWAY };
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
   console.log('💾 Config saved to config.json');
 }
@@ -582,6 +585,9 @@ if (savedCfg.BREVO_SENDER)   BREVO_SENDER   = savedCfg.BREVO_SENDER;
 if (savedCfg.GMAIL_CLIENT_ID)     GMAIL_CLIENT_ID     = savedCfg.GMAIL_CLIENT_ID;
 if (savedCfg.GMAIL_CLIENT_SECRET) GMAIL_CLIENT_SECRET = savedCfg.GMAIL_CLIENT_SECRET;
 if (savedCfg.GMAIL_REFRESH_TOKEN) GMAIL_REFRESH_TOKEN = savedCfg.GMAIL_REFRESH_TOKEN;
+if (savedCfg.TWILIO_ACCOUNT_SID)  TWILIO_ACCOUNT_SID  = savedCfg.TWILIO_ACCOUNT_SID;
+if (savedCfg.TWILIO_AUTH_TOKEN)   TWILIO_AUTH_TOKEN   = savedCfg.TWILIO_AUTH_TOKEN;
+if (savedCfg.TWILIO_PHONE_NUMBER) TWILIO_PHONE_NUMBER = savedCfg.TWILIO_PHONE_NUMBER;
 if (savedCfg.NTFY_TOPIC)        NTFY_TOPIC        = savedCfg.NTFY_TOPIC;
 if (savedCfg.ANTHROPIC_API_KEY) ANTHROPIC_API_KEY = savedCfg.ANTHROPIC_API_KEY;
 if (savedCfg.CARRIER_GATEWAY)   CARRIER_GATEWAY   = savedCfg.CARRIER_GATEWAY;
@@ -1698,10 +1704,36 @@ async function sendViaGmailApi(to, subject, text) {
   return data;
 }
 
+// ── Twilio → real SMS network (most reliable, bypasses email-to-SMS spam filtering entirely) ──
+async function sendViaTwilio(toDigits, message) {
+  const to   = `+1${toDigits.replace(/\D/g, '')}`;
+  const from = `+1${TWILIO_PHONE_NUMBER.replace(/\D/g, '')}`;
+  const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`, {
+    method: 'POST',
+    headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ To: to, From: from, Body: message })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.message || JSON.stringify(data));
+  return data;
+}
+
 async function sendSMS(message) {
   if (!PHONE_NUMBER) {
     console.log('📵 No phone number configured — skipping SMS.');
     return { success: false, reason: 'No phone number configured' };
+  }
+
+  // ── Method 0: Twilio (tried first — real SMS network, most reliable) ──
+  if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER) {
+    try {
+      await sendViaTwilio(PHONE_NUMBER, message);
+      console.log(`✅ SMS sent via Twilio to ${PHONE_NUMBER}`);
+      return { success: true, method: 'twilio' };
+    } catch (e) {
+      console.error('❌ Twilio SMS failed:', e.message);
+    }
   }
 
   // ── Method 1: Mac Messages app (iMessage) ──
