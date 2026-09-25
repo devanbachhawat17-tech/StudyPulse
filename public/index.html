@@ -634,6 +634,7 @@ select option{background:var(--s2);}
       <button class="ntab" onclick="go('assignments',this)">📚 Assignments</button>
       <button class="ntab" onclick="go('add',this)">➕ Add Assignment</button>
       <button class="ntab" onclick="go('email',this)">📧 Email Reminders</button>
+      <button class="ntab" onclick="go('sms',this)">📱 SMS Reminders</button>
       <button class="ntab" onclick="go('canvas',this)">🔵 Canvas Sync</button>
       <button class="ntab" onclick="go('studyguide',this)">🧠 Study Guide</button>
       <button class="ntab" onclick="go('emaildraft',this)">✉️ Email Teacher</button>
@@ -871,6 +872,49 @@ select option{background:var(--s2);}
             <div><div class="sched-time">6:00 PM — Every Sunday</div><div class="sched-desc">Full week summary — all assignments, paper work, missing items, AI note</div></div>
             <span class="badge-w">Weekly</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SMS REMINDERS ───────────────────────────── -->
+    <div class="page" id="page-sms">
+      <div class="email-hero">
+        <div class="email-hero-icon">📱</div>
+        <div>
+          <h2>SMS Reminders</h2>
+          <p>Enter your phone number and check the consent box below to turn on text reminders. Unchecked by default — you can use StudyPulse fully without ever opting in to texts.</p>
+        </div>
+      </div>
+
+      <div class="sbar idle" id="sb-sms"><span>👇 Enter your phone number and check the box below to enable texts.</span></div>
+
+      <div class="card">
+        <div class="card-title">📲 Text Message Configuration</div>
+        <div class="row c3">
+          <div class="fg">
+            <label>Your Name</label>
+            <input type="text" id="smsName" placeholder="e.g. Devan"/>
+          </div>
+          <div class="fg">
+            <label>📞 Your phone number</label>
+            <input type="tel" id="smsPhone" placeholder="e.g. 8622208909"/>
+          </div>
+        </div>
+
+        <div style="background:rgba(64,112,255,0.06);border:1px solid rgba(64,112,255,0.15);border-radius:9px;padding:14px 16px;margin:14px 0;display:flex;gap:12px;align-items:flex-start;">
+          <input type="checkbox" id="smsConsent" style="margin-top:3px;flex-shrink:0;width:18px;height:18px;"/>
+          <label for="smsConsent" style="font-size:0.8rem;color:var(--muted);line-height:1.7;cursor:pointer;">
+            I want to receive SMS text reminders about my assignments, quizzes, and due dates from StudyPulse.
+            <b style="color:var(--text)">Message frequency varies</b> — up to a few times per day (morning, midday, evening) plus a weekly summary.
+            <b style="color:var(--text)">Msg &amp; data rates may apply.</b>
+            <b style="color:var(--text)">Reply STOP to cancel, HELP for help.</b>
+            See our <a href="/terms.html" target="_blank" style="color:var(--blue)">Terms &amp; Conditions</a> and <a href="/privacy.html" target="_blank" style="color:var(--blue)">Privacy Policy</a>.
+          </label>
+        </div>
+
+        <div class="btn-row" style="margin-top:4px;">
+          <button class="btn btn-blue" onclick="saveSmsPhone()">💾 Save Settings</button>
+          <button class="btn btn-ghost" id="smsTestBtn" onclick="testSms()" disabled>📱 Send Test Text</button>
         </div>
       </div>
     </div>
@@ -1375,6 +1419,11 @@ async function loadConfig() {
       if (d.email.studentName) document.getElementById('emailName').value  = d.email.studentName;
       setBar('sb-email','ok','✅ Email reminders are active. Send a test or trigger a digest below.');
     }
+    if (d.sms && d.sms.enabled && d.sms.hasPhone) {
+      document.getElementById('smsTestBtn').disabled = false;
+      if (d.sms.studentName) document.getElementById('smsName').value = d.sms.studentName;
+      setBar('sb-sms','ok','✅ SMS reminders are active. Send a test below.');
+    }
   } catch(e) { console.log('Config load error:', e.message); }
 }
 
@@ -1397,6 +1446,35 @@ async function saveResend() {
     document.getElementById('testBtn').disabled = false;
     document.getElementById('emailTriggers').style.display = 'block';
   } catch(e) { setBar('sb-email','err',`❌ ${e.message}`); }
+}
+
+// ─── SMS (TWILIO) ─────────────────────────────────
+async function saveSmsPhone() {
+  const name    = document.getElementById('smsName').value.trim();
+  const phone   = document.getElementById('smsPhone').value.trim();
+  const consent = document.getElementById('smsConsent').checked;
+  if (!phone) { setBar('sb-sms','err','❌ Enter your phone number.'); return; }
+  if (!consent) { setBar('sb-sms','err','❌ Please check the consent box to enable SMS reminders.'); return; }
+  setBar('sb-sms','load','💾 Saving...');
+  try {
+    const r = await fetch('/api/sms-phone-config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phoneNumber: phone, studentName: name, smsConsent: consent })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    setBar('sb-sms','ok','✅ Saved! Now click "Send Test Text" to confirm it works.');
+    document.getElementById('smsTestBtn').disabled = false;
+  } catch(e) { setBar('sb-sms','err',`❌ ${e.message}`); }
+}
+async function testSms() {
+  setBar('sb-sms','load','📱 Sending test text...');
+  try {
+    const r = await fetch('/api/test-sms', { method:'POST', headers:{'Content-Type':'application/json'} });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.reason || 'Could not send test text.');
+    setBar('sb-sms','ok','✅ Test text sent — check your phone!');
+  } catch(e) { setBar('sb-sms','err',`❌ ${e.message}`); }
 }
 
 // ─── EMAIL ────────────────────────────────────────
