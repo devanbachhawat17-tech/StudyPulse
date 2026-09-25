@@ -190,6 +190,19 @@ app.post('/api/resend-config', (req, res) => {
   res.json({ success: true, emailTo: EMAIL_TO });
 });
 
+// ─── SMS OPT-IN (phone number + explicit consent, required for A2P compliance) ───
+app.post('/api/sms-phone-config', (req, res) => {
+  const { phoneNumber, studentName, smsConsent } = req.body;
+  if (!phoneNumber) return res.status(400).json({ error: 'Phone number is required.' });
+  if (!smsConsent)  return res.status(400).json({ error: 'You must check the consent box to enable SMS reminders.' });
+  PHONE_NUMBER = phoneNumber.replace(/\D/g, '');
+  SMS_ENABLED  = true;
+  if (studentName) STUDENT_NAME = studentName;
+  saveConfig();
+  console.log(`📱 SMS opted in for ${PHONE_NUMBER}`);
+  res.json({ success: true });
+});
+
 app.get('/api/config/status', (req, res) => {
   res.json({
     configured: !!(CANVAS_DOMAIN && CANVAS_TOKEN), domain: CANVAS_DOMAIN,
